@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# Logs
+npm-debug.log*
+*.log
+
+# Environment
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
