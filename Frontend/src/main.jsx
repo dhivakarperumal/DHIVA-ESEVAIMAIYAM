@@ -10,6 +10,7 @@ import PrivateRoute from './PrivateRouter/PrivateRouter.jsx'
 import EmployeeDashboard from './Employees/EmployeeDashboard.jsx'
 import AdminDashboard from './Admin/AdminDashboard.jsx'
 import AdminLayout from './Admin/Adminpanel.jsx'
+import UserManagement from './Admin/UserManagement.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
 import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
@@ -51,6 +52,10 @@ const router = createHashRouter([
           {
             index: true,
             element: <AdminDashboard />,
+          },
+          {
+            path: 'user-management',
+            element: <UserManagement />,
           },
         ],
       },

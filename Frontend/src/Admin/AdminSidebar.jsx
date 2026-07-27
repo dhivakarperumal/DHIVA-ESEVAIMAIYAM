@@ -36,9 +36,15 @@ const navItems = [
     icon: Users,
   },
   {
-    path: "/admin/service-management",
     label: "Service Management",
     icon: ClipboardList,
+    children: [
+      { path: "/admin/service-management/all", label: "All Services" },
+      { path: "/admin/service-management/add", label: "Add New Service" },
+      { path: "/admin/service-management/categories", label: "Service Categories" },
+      { path: "/admin/service-management/documents", label: "Required Documents" },
+      { path: "/admin/service-management/charges", label: "Service Charges" },
+    ]
   },
   {
     path: "/admin/applications",
@@ -190,18 +196,18 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                       w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm
                       transition-all duration-200 group
                       ${isAnyChildActive
-                        ? "text-white"
+                        ? "bg-[#f8740e] text-white font-medium"
                         : "text-white/60 hover:text-white hover:bg-white/5"
                       }
                     `}
                   >
-                    <Icon className={`w-[18px] h-[18px] shrink-0 ${isAnyChildActive ? "text-[#f8740e]" : ""}`} />
+                    <Icon className="w-[18px] h-[18px] shrink-0" />
                     {!collapsed && (
                       <>
                         <span className="flex-1 text-left font-medium flex items-center gap-2">
                           {item.label}
                           {item.isNew && (
-                            <span className="bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">New</span>
+                            <span className="bg-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">New</span>
                           )}
                         </span>
                         <ChevronDown
@@ -216,10 +222,13 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                   {/* ===== SUB MENU ===== */}
                   {!collapsed && (
                     <div
-                      className={`ml-11 mt-1 space-y-1 overflow-hidden transition-all duration-200 ${
-                        isMenuOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+                      className={`mt-1 space-y-0.5 overflow-hidden transition-all duration-200 relative ${
+                        isMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
                       }`}
                     >
+                      {/* Vertical Connecting Line */}
+                      <div className="absolute left-[51px] top-5 bottom-5 w-px bg-white/10 z-0"></div>
+                      
                       {item.children.map((sub) => {
                         const isActive = isRouteActive(sub.path);
                         return (
@@ -228,15 +237,17 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
                             to={sub.path}
                             onClick={() => isOpen && onClose()}
                             className={`
-                              flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                              transition-all duration-200 relative
+                              flex items-center gap-3 pl-12 pr-4 py-2.5 rounded-xl text-sm relative z-10
+                              transition-all duration-200
                               ${isActive
-                                ? "text-[#f8740e] font-medium"
-                                : "text-white/50 hover:text-white"
+                                ? "text-[#f8740e] font-semibold bg-[#f8740e]/10"
+                                : "text-white/50 hover:text-white hover:bg-white/5"
                               }
                             `}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#f8740e]' : 'bg-white/20'}`}></span>
+                            <span className={`w-2 h-2 rounded-full shrink-0 transition-all ${
+                              isActive ? 'bg-[#f8740e] shadow-[0_0_6px_rgba(248,116,14,0.8)]' : 'bg-white/20'
+                            }`}></span>
                             <span>{sub.label}</span>
                           </NavLink>
                         );
