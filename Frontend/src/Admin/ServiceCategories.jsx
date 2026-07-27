@@ -15,7 +15,13 @@ import {
   Layers,
   Save,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LayoutGrid,
+  List,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 const initialCategories = [
@@ -23,7 +29,7 @@ const initialCategories = [
     cid: "CAT001", 
     name: "Aadhaar Services", 
     image: null, 
-    description: "Aadhaar related services", 
+    description: "Aadhaar related services including download and update", 
     subcategories: ["Aadhaar Download", "Aadhaar PVC Card", "Aadhaar Status Check", "Aadhaar Appointment Booking", "Aadhaar Update Support"],
     status: 'Active' 
   },
@@ -42,12 +48,21 @@ const initialCategories = [
     description: "All types of government certificates", 
     subcategories: ["Income", "Community", "Nativity", "First Graduate"],
     status: 'Active' 
+  },
+  { 
+    cid: "CAT004", 
+    name: "Pensions", 
+    image: null, 
+    description: "Old age pension, widow pension and other schemes", 
+    subcategories: ["Old Age Pension", "Widow Pension", "Disability Pension"],
+    status: 'Inactive' 
   }
 ];
 
 const ServiceCategories = () => {
   const [categories, setCategories] = useState(initialCategories);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
   
   // Form State
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -68,8 +83,6 @@ const ServiceCategories = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // In a real app, you would compress the image here before setting/uploading
-      // e.g. using canvas or a library like browser-image-compression
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -117,13 +130,17 @@ const ServiceCategories = () => {
 
   const handleClose = () => {
     setIsAddOpen(false);
-    // Reset Form
     setNewCategoryName('');
     setNewCategoryDesc('');
     setImagePreview(null);
     setSubcategories([]);
     setCurrentSubcat('');
   };
+
+  // Stats Calculations
+  const totalCategories = categories.length;
+  const activeCategories = categories.filter(c => c.status === 'Active').length;
+  const inactiveCategories = categories.filter(c => c.status === 'Inactive').length;
 
   return (
     <div className="flex flex-col gap-6 text-white p-2 sm:p-4">
@@ -140,17 +157,89 @@ const ServiceCategories = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex bg-[#1a1c23] border border-gray-800 rounded-lg p-1 mr-2">
+            <button 
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              title="Table View"
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('card')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'card' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              title="Card View"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-md border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 transition-colors">
             <Download size={18} />
-            <span>Export</span>
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button 
             onClick={() => setIsAddOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
           >
             <Plus size={18} />
-            <span>Add Category</span>
+            <span className="hidden sm:inline">Add Category</span>
           </button>
+        </div>
+      </div>
+
+      {/* Stats Cards Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+            <Layers size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Total Categories</p>
+            <h3 className="text-2xl font-bold text-white mt-1">{totalCategories}</h3>
+            <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
+              <TrendingUp size={12} />
+              <span>12.4% from last month</span>
+            </p>
+          </div>
+        </div>
+        <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
+            <CheckCircle2 size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Active Categories</p>
+            <h3 className="text-2xl font-bold text-white mt-1">{activeCategories}</h3>
+            <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
+              <TrendingUp size={12} />
+              <span>5.2% from last month</span>
+            </p>
+          </div>
+        </div>
+        <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+            <XCircle size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Inactive Categories</p>
+            <h3 className="text-2xl font-bold text-white mt-1">{inactiveCategories}</h3>
+            <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+              <TrendingDown size={12} />
+              <span>1.5% from last month</span>
+            </p>
+          </div>
+        </div>
+        <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+            <Plus size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">New This Month</p>
+            <h3 className="text-2xl font-bold text-white mt-1">1</h3>
+            <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
+              <TrendingUp size={12} />
+              <span>0.8% from last month</span>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -160,7 +249,7 @@ const ServiceCategories = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
           <input 
             type="text" 
-            placeholder="Search categories..." 
+            placeholder="Search categories by name or ID..." 
             className="w-full bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-600 text-white placeholder-gray-500"
           />
         </div>
@@ -176,103 +265,175 @@ const ServiceCategories = () => {
         </button>
       </div>
 
-      {/* Table Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-sm">
-                <th className="py-4 px-4 pl-6 font-medium">Category Info</th>
-                <th className="py-4 px-4 font-medium">Description</th>
-                <th className="py-4 px-4 font-medium">Subcategories</th>
-                <th className="py-4 px-4 font-medium">Status</th>
-                <th className="py-4 px-4 pr-6 font-medium text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((cat) => (
-                <tr key={cat.cid} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                  <td className="py-3 px-4 pl-6 min-w-[250px]">
-                    <div className="flex items-center gap-3">
-                      {cat.image ? (
-                        <img src={cat.image} alt={cat.name} className="w-10 h-10 rounded-lg object-cover border border-gray-700" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                          <ImageIcon size={20} />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium text-white text-sm">{cat.name}</div>
-                        <div className="text-xs text-orange-400 font-mono mt-0.5">{cat.cid}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-400 max-w-[200px] truncate">
-                    {cat.description}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-wrap gap-1.5 max-w-[250px]">
-                      {cat.subcategories.slice(0, 2).map((sub, idx) => (
-                        <span key={idx} className="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-xs text-gray-300">
-                          {sub}
-                        </span>
-                      ))}
-                      {cat.subcategories.length > 2 && (
-                        <span className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-xs text-orange-400">
-                          +{cat.subcategories.length - 2} more
-                        </span>
-                      )}
-                      {cat.subcategories.length === 0 && (
-                        <span className="text-gray-500 text-xs">None</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-                      cat.status === 'Active' 
-                        ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                        : 'bg-red-500/10 text-red-500 border-red-500/20'
-                    }`}>
-                      {cat.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 pr-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
-                        <Eye size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+      {/* Main Content Area */}
+      {viewMode === 'table' ? (
+        <div className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-800 text-gray-400 text-sm">
+                  <th className="py-4 px-4 pl-6 font-medium">Category Info</th>
+                  <th className="py-4 px-4 font-medium">Description</th>
+                  <th className="py-4 px-4 font-medium">Subcategories</th>
+                  <th className="py-4 px-4 font-medium">Status</th>
+                  <th className="py-4 px-4 pr-6 font-medium text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-400">
-            Showing 1 to {categories.length} of {categories.length} categories
+              </thead>
+              <tbody>
+                {categories.map((cat) => (
+                  <tr key={cat.cid} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
+                    <td className="py-3 px-4 pl-6 min-w-[250px]">
+                      <div className="flex items-center gap-3">
+                        {cat.image ? (
+                          <img src={cat.image} alt={cat.name} className="w-10 h-10 rounded-lg object-cover border border-gray-700" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            <ImageIcon size={20} />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-white text-sm">{cat.name}</div>
+                          <div className="text-xs text-orange-400 font-mono mt-0.5">{cat.cid}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-400 max-w-[200px] truncate">
+                      {cat.description}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1.5 max-w-[250px]">
+                        {cat.subcategories.slice(0, 2).map((sub, idx) => (
+                          <span key={idx} className="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-xs text-gray-300">
+                            {sub}
+                          </span>
+                        ))}
+                        {cat.subcategories.length > 2 && (
+                          <span className="bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded text-xs text-orange-400">
+                            +{cat.subcategories.length - 2} more
+                          </span>
+                        )}
+                        {cat.subcategories.length === 0 && (
+                          <span className="text-gray-500 text-xs">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
+                        cat.status === 'Active' 
+                          ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                          : 'bg-red-500/10 text-red-500 border-red-500/20'
+                      }`}>
+                        {cat.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 pr-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
+                          <Eye size={16} />
+                        </button>
+                        <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
+                          <Edit2 size={16} />
+                        </button>
+                        <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="flex items-center gap-1">
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 disabled:opacity-50">
-              <ChevronLeft size={16} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md bg-orange-500 text-white border border-orange-500">
-              1
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              <ChevronRight size={16} />
-            </button>
+          {/* Pagination */}
+          <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-400">
+              Showing 1 to {categories.length} of {categories.length} categories
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 disabled:opacity-50">
+                <ChevronLeft size={16} />
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-md bg-orange-500 text-white border border-orange-500">
+                1
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {categories.map(cat => (
+            <div key={cat.cid} className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors flex flex-col">
+              <div className="h-32 bg-[#0f1115] relative">
+                {cat.image ? (
+                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="text-gray-700" size={48} />
+                  </div>
+                )}
+                <div className="absolute top-3 right-3">
+                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium shadow-lg backdrop-blur-md ${
+                    cat.status === 'Active' 
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  }`}>
+                    {cat.status}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{cat.name}</h3>
+                    <p className="text-xs font-mono text-orange-400">{cat.cid}</p>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-gray-400 mb-4 line-clamp-2 min-h-[40px]">
+                  {cat.description}
+                </p>
+                
+                <div className="mb-4 flex-1">
+                  <div className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Subcategories ({cat.subcategories.length})</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {cat.subcategories.slice(0, 3).map((sub, idx) => (
+                      <span key={idx} className="bg-[#0f1115] border border-gray-800 px-2 py-1 rounded text-[11px] text-gray-300">
+                        {sub}
+                      </span>
+                    ))}
+                    {cat.subcategories.length > 3 && (
+                      <span className="bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded text-[11px] text-orange-400">
+                        +{cat.subcategories.length - 3}
+                      </span>
+                    )}
+                    {cat.subcategories.length === 0 && (
+                      <span className="text-gray-500 text-xs italic">None added</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center pt-4 border-t border-gray-800 mt-auto">
+                  <button className="text-sm text-orange-500 hover:text-orange-400 font-medium transition-colors">
+                    Manage
+                  </button>
+                  <div className="flex gap-1">
+                    <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-800 transition-colors" title="Edit">
+                      <Edit2 size={16} />
+                    </button>
+                    <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors" title="Delete">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Add Category Drawer */}
       {typeof document !== 'undefined' && createPortal(
