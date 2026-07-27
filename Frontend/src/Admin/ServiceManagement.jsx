@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Download, 
@@ -139,8 +140,23 @@ const getCategoryColor = (category) => {
 };
 
 const ServiceManagement = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedServices, setSelectedServices] = useState([]);
-  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+  const [isAddServiceOpen, setIsAddServiceOpen] = useState(location.pathname === '/admin/service-management/add');
+
+  useEffect(() => {
+    if (location.pathname === '/admin/service-management/add') {
+      setIsAddServiceOpen(true);
+    }
+  }, [location.pathname]);
+
+  const handleCloseDrawer = () => {
+    setIsAddServiceOpen(false);
+    if (location.pathname === '/admin/service-management/add') {
+      navigate('/admin/service-management/all');
+    }
+  };
 
   const toggleServiceSelection = (id) => {
     setSelectedServices(prev => 
@@ -176,7 +192,10 @@ const ServiceManagement = () => {
             <span>Export</span>
           </button>
           <button 
-            onClick={() => setIsAddServiceOpen(true)}
+            onClick={() => {
+              setIsAddServiceOpen(true);
+              navigate('/admin/service-management/add');
+            }}
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
           >
             <Plus size={18} />
@@ -378,7 +397,7 @@ const ServiceManagement = () => {
           {isAddServiceOpen && (
             <div 
               className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm" 
-              onClick={() => setIsAddServiceOpen(false)} 
+              onClick={handleCloseDrawer} 
             />
           )}
 
@@ -388,7 +407,7 @@ const ServiceManagement = () => {
               <div>
                 <h2 className="text-xl font-semibold text-white">Add New Service</h2>
               </div>
-              <button onClick={() => setIsAddServiceOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+              <button onClick={handleCloseDrawer} className="text-gray-400 hover:text-white transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -487,7 +506,7 @@ const ServiceManagement = () => {
 
             {/* Drawer Footer */}
             <div className="p-6 border-t border-gray-800 flex gap-4 bg-[#1a1c23]">
-              <button onClick={() => setIsAddServiceOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
+              <button onClick={handleCloseDrawer} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
                 Cancel
               </button>
               <button className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center gap-2">

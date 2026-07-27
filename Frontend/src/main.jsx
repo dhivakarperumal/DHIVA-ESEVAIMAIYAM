@@ -12,6 +12,9 @@ import AdminDashboard from './Admin/AdminDashboard.jsx'
 import AdminLayout from './Admin/Adminpanel.jsx'
 import UserManagement from './Admin/UserManagement.jsx'
 import ServiceManagement from './Admin/ServiceManagement.jsx'
+import ServiceCategories from './Admin/ServiceCategories.jsx'
+import RequiredDocuments from './Admin/RequiredDocuments.jsx'
+import ServiceCharges from './Admin/ServiceCharges.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
 import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
@@ -61,6 +64,22 @@ const router = createHashRouter([
           {
             path: 'service-management/all',
             element: <ServiceManagement />,
+          },
+          {
+            path: 'service-management/add',
+            element: <ServiceManagement />,
+          },
+          {
+            path: 'service-management/categories',
+            element: <ServiceCategories />,
+          },
+          {
+            path: 'service-management/documents',
+            element: <RequiredDocuments />,
+          },
+          {
+            path: 'service-management/charges',
+            element: <ServiceCharges />,
           },
         ],
       },
