@@ -1,4 +1,4 @@
-﻿const mysql = require("mysql2/promise");
+const mysql = require("mysql2/promise");
 require("dotenv").config();
 
 const dbConfig = {
@@ -22,6 +22,111 @@ async function initDB() {
   try {
     const connection = await pool.getConnection();
     await connection.ping();
+
+    // Ensure category table exists for application features that depend on it
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        cid VARCHAR(50) NOT NULL UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        image TEXT DEFAULT NULL,
+        description TEXT DEFAULT '',
+        subcategories TEXT NOT NULL DEFAULT '[]',
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // --- Expense Management Tables ---
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS expense_categories (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS expense_subcategories (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        category_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES expense_categories(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS expense_vendors (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        vendor_id VARCHAR(50) NOT NULL UNIQUE,
+        vendor_name VARCHAR(255) NOT NULL,
+        mobile VARCHAR(20) DEFAULT NULL,
+        email VARCHAR(255) DEFAULT NULL,
+        address TEXT DEFAULT NULL,
+        gst_number VARCHAR(50) DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        expense_id VARCHAR(50) NOT NULL UNIQUE,
+        expense_date DATE NOT NULL,
+        category_id INT NOT NULL,
+        subcategory_id INT DEFAULT NULL,
+        expense_title VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        payment_method VARCHAR(50) NOT NULL,
+        payment_status VARCHAR(50) NOT NULL DEFAULT 'Paid',
+        vendor_id INT DEFAULT NULL,
+        reference_number VARCHAR(100) DEFAULT NULL,
+        receipt_number VARCHAR(100) DEFAULT NULL,
+        receipt_path TEXT DEFAULT NULL,
+        is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+        recurring_type VARCHAR(50) DEFAULT NULL,
+        next_payment_date DATE DEFAULT NULL,
+        notes TEXT DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_by VARCHAR(100) DEFAULT NULL,
+        updated_by VARCHAR(100) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES expense_categories(id) ON DELETE RESTRICT,
+        FOREIGN KEY (subcategory_id) REFERENCES expense_subcategories(id) ON DELETE SET NULL,
+        FOREIGN KEY (vendor_id) REFERENCES expense_vendors(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS daily_cash_closing (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        opening_cash DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        cash_income DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        cash_expense DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        expected_closing DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        actual_closing DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        difference DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        closing_date DATE NOT NULL UNIQUE,
+        closed_by VARCHAR(100) DEFAULT NULL,
+        notes TEXT DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     connection.release();
     console.log("Database connected:", `${dbConfig.user}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
     return pool;
