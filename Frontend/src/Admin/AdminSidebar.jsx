@@ -7,6 +7,7 @@ import {
   X,
   ChevronDown,
   ChevronLeft,
+  RefreshCcw,
   FileText,
   CreditCard,
   Briefcase,
@@ -17,6 +18,7 @@ import {
   ClipboardList,
   BarChart3,
   Receipt,
+  Wallet,
   Server
 } from "lucide-react";
 
@@ -66,11 +68,14 @@ const navItems = [
     icon: Briefcase,
     isNew: true,
     children: [
-      { path: "/admin/expenses/overview", label: "Overview", icon: BarChart3 },
-      { path: "/admin/expenses/add", label: "Add Expense", icon: FileText },
-      { path: "/admin/expenses/list", label: "Expense List", icon: Receipt },
-      { path: "/admin/expenses/categories", label: "Categories", icon: FolderKanban },
-      { path: "/admin/expenses/vendors", label: "Vendors", icon: Users },
+      { path: "/admin/expense-management/dashboard", label: "Dashboard", icon: BarChart3 },
+      { path: "/admin/expense-management/add", label: "Add Expense", icon: FileText },
+      { path: "/admin/expense-management/all", label: "All Expenses", icon: Receipt },
+      { path: "/admin/expense-management/categories", label: "Categories", icon: FolderKanban },
+      { path: "/admin/expense-management/vendors", label: "Vendors", icon: Users },
+      { path: "/admin/expense-management/recurring", label: "Recurring", icon: RefreshCcw },
+      { path: "/admin/expense-management/reports", label: "Reports", icon: BarChart3 },
+      { path: "/admin/expense-management/cash-closing", label: "Cash Closing", icon: Wallet },
     ],
   },
   {

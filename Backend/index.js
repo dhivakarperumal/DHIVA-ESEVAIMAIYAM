@@ -9,6 +9,7 @@ const { initDB } = require("./src/config/db");
 const { ensureDefaultAdmin } = require("./src/seed/adminSeed");
 const usersRouter = require("./src/routers/usersRouter");
 const categoryRouter = require("./src/routers/categoryRouter");
+const expenseRouter = require("./src/routers/expenseRouter");
 
 const app = express();
 const als = new AsyncLocalStorage();
@@ -45,6 +46,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use("/api/users", usersRouter);
 app.use("/api/categories", categoryRouter);
+app.use("/api/expenses", expenseRouter);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

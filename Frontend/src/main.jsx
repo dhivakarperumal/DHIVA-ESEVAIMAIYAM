@@ -15,6 +15,14 @@ import ServiceManagement from './Admin/ServiceManagement.jsx'
 import ServiceCategories from './Admin/ServiceCategories.jsx'
 import RequiredDocuments from './Admin/RequiredDocuments.jsx'
 import ServiceCharges from './Admin/ServiceCharges.jsx'
+import ExpenseDashboard from './Admin/ExpenseDashboard.jsx'
+import AllExpenses from './Admin/AllExpenses.jsx'
+import AddExpense from './Admin/AddExpense.jsx'
+import ExpenseCategories from './Admin/ExpenseCategories.jsx'
+import RecurringExpenses from './Admin/RecurringExpenses.jsx'
+import ExpenseVendors from './Admin/ExpenseVendors.jsx'
+import ExpenseReports from './Admin/ExpenseReports.jsx'
+import DailyCashClosing from './Admin/DailyCashClosing.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
 import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
@@ -80,6 +88,43 @@ const router = createHashRouter([
           {
             path: 'service-management/charges',
             element: <ServiceCharges />,
+          },
+          // ── Expense Management ────────────────────────────────────────
+          {
+            path: 'expense-management/dashboard',
+            element: <ExpenseDashboard />,
+          },
+          {
+            path: 'expense-management/all',
+            element: <AllExpenses />,
+          },
+          {
+            path: 'expense-management/add',
+            element: <AddExpense />,
+          },
+          {
+            path: 'expense-management/edit/:id',
+            element: <AddExpense />,
+          },
+          {
+            path: 'expense-management/categories',
+            element: <ExpenseCategories />,
+          },
+          {
+            path: 'expense-management/recurring',
+            element: <RecurringExpenses />,
+          },
+          {
+            path: 'expense-management/vendors',
+            element: <ExpenseVendors />,
+          },
+          {
+            path: 'expense-management/reports',
+            element: <ExpenseReports />,
+          },
+          {
+            path: 'expense-management/cash-closing',
+            element: <DailyCashClosing />,
           },
         ],
       },
