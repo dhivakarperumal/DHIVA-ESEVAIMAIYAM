@@ -64,7 +64,7 @@ const navItems = [
     icon: FileText,
   },
   {
-    label: "Expense Management",
+    label: "Expense Tracking",
     icon: Briefcase,
     isNew: true,
     children: [
@@ -78,36 +78,19 @@ const navItems = [
       { path: "/admin/expense-management/cash-closing", label: "Cash Closing", icon: Wallet },
     ],
   },
-  {
-    path: "/admin/reports",
-    label: "Reports",
-    icon: BarChart3,
-  },
-  {
-    path: "/admin/announcements",
-    label: "Notice & Announcements",
-    icon: Megaphone,
-  },
-  {
-    path: "/admin/center-management",
-    label: "Center Management",
-    icon: Server,
-  },
+ 
+
   {
     path: "/admin/equipment-management",
     label: "Equipment Management",
     icon: MonitorSmartphone,
   },
-  {
-    path: "/admin/audit-logs",
-    label: "Audit Logs",
-    icon: FileText,
+   {
+    path: "/admin/reports",
+    label: "Reports",
+    icon: BarChart3,
   },
-  {
-    path: "/admin/settings",
-    label: "Settings",
-    icon: Settings,
-  }
+
 ];
 
 /* ================= SIDEBAR ================= */
@@ -154,7 +137,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           transition-all duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
-          ${collapsed ? "w-[80px]" : "w-76"}
+          ${collapsed ? "w-[80px]" : "w-[304px]"}
         `}
       >
         {/* ========== LOGO ========== */}
@@ -166,7 +149,7 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-black text-white leading-tight tracking-wide">
-                E SEVAI<br />MAIYAM
+                E SEVAI MAIYAM
               </h1>
               <p className="text-xs text-white/50 font-bold uppercase tracking-widest mt-0.5">
                 Admin Portal

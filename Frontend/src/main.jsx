@@ -11,18 +11,23 @@ import EmployeeDashboard from './Employees/EmployeeDashboard.jsx'
 import AdminDashboard from './Admin/AdminDashboard.jsx'
 import AdminLayout from './Admin/Adminpanel.jsx'
 import UserManagement from './Admin/UserManagement.jsx'
-import ServiceManagement from './Admin/ServiceManagement.jsx'
-import ServiceCategories from './Admin/ServiceCategories.jsx'
-import RequiredDocuments from './Admin/RequiredDocuments.jsx'
-import ServiceCharges from './Admin/ServiceCharges.jsx'
-import ExpenseDashboard from './Admin/ExpenseDashboard.jsx'
-import AllExpenses from './Admin/AllExpenses.jsx'
-import AddExpense from './Admin/AddExpense.jsx'
-import ExpenseCategories from './Admin/ExpenseCategories.jsx'
-import RecurringExpenses from './Admin/RecurringExpenses.jsx'
-import ExpenseVendors from './Admin/ExpenseVendors.jsx'
-import ExpenseReports from './Admin/ExpenseReports.jsx'
-import DailyCashClosing from './Admin/DailyCashClosing.jsx'
+import ServiceManagement from './Admin/ServicesMangement/ServiceManagement.jsx'
+import ServiceCategories from './Admin/ServicesMangement/ServiceCategories.jsx'
+import RequiredDocuments from './Admin/ApplicationMangement/RequiredDocuments.jsx'
+import ServiceCharges from './Admin/ServicesMangement/ServiceCharges.jsx'
+import ExpenseDashboard from './Admin/ExpenseManagement/ExpenseDashboard.jsx'
+import AllExpenses from './Admin/ExpenseManagement/AllExpenses.jsx'
+import AddExpense from './Admin/ExpenseManagement/AddExpense.jsx'
+import ExpenseCategories from './Admin/ExpenseManagement/ExpenseCategories.jsx'
+import RecurringExpenses from './Admin/ExpenseManagement/RecurringExpenses.jsx'
+import ExpenseVendors from './Admin/ExpenseManagement/ExpenseVendors.jsx'
+import ExpenseReports from './Admin/ExpenseManagement/ExpenseReports.jsx'
+import DailyCashClosing from './Admin/ExpenseManagement/DailyCashClosing.jsx'
+import Applications from './Admin/ApplicationMangement/Applications.jsx'
+import EquipmentManagement from './Admin/EquipmentManagement.jsx'
+import Certificates from './Admin/Certificates.jsx'
+import Payments from './Admin/Payments.jsx'
+import Reports from './Admin/Reports.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
 import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
@@ -68,6 +73,26 @@ const router = createHashRouter([
           {
             path: 'user-management',
             element: <UserManagement />,
+          },
+          {
+            path: 'applications',
+            element: <Applications />,
+          },
+          {
+            path: 'equipment-management',
+            element: <EquipmentManagement />,
+          },
+          {
+            path: 'certificates',
+            element: <Certificates />,
+          },
+          {
+            path: 'payments',
+            element: <Payments />,
+          },
+          {
+            path: 'reports',
+            element: <Reports />,
           },
           {
             path: 'service-management/all',

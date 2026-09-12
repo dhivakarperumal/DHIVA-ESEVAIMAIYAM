@@ -69,7 +69,7 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#111317] flex font-sans overflow-hidden text-gray-300">
+    <div className="h-screen w-full bg-primary flex font-sans overflow-hidden text-gray-300">
       {/* Left Panel */}
       <div 
         className="hidden lg:flex flex-col justify-between w-1/2 relative z-10 bg-[#0a0a0c] px-12 py-8"
@@ -81,7 +81,7 @@ const Login = () => {
         }}
       >
         {/* Top Logo */}
-        <div className="flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-3">
           <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
           <div className="leading-tight">
             <h1 className="text-lg font-bold text-white tracking-wide">COMPANY</h1>

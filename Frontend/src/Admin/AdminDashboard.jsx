@@ -57,7 +57,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5 col-span-1 lg:col-span-1" style={{gridColumn: 'span 1.5'}}>
+        <div className="bg-[#1a1b23] border border-white/5 rounded-2xl p-5 col-span-1 lg:col-span-1">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Application Overview</h2>
             <select className="bg-[#0d0d12] border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70"><option>This Month</option></select>
@@ -108,14 +108,14 @@ const AdminDashboard = () => {
           </div>
           <div className="space-y-4">
             {[
-              { title: 'Community Certificate', name: 'K. Srinivasan', time: '10 min ago', status: 'Pending', icon: FileSignature, bg: 'bg-orange-500' },
-              { title: 'Income Certificate', name: 'M. Kavitha', time: '25 min ago', status: 'Completed', icon: FileText, bg: 'bg-green-500' },
-              { title: 'Nativity Certificate', name: 'R. Prakash', time: '40 min ago', status: 'In Progress', icon: FileText, bg: 'bg-blue-500' },
-              { title: 'First Graduate Certificate', name: 'S. Dinesh', time: '1 hour ago', status: 'Pending', icon: FileSignature, bg: 'bg-orange-500' },
-              { title: 'Family Certificate', name: 'P. Lakshmi', time: '2 hours ago', status: 'Rejected', icon: FileText, bg: 'bg-red-500' }
+              { title: 'Community Certificate', name: 'K. Srinivasan', time: '10 min ago', status: 'Pending', icon: FileSignature, colorClass: 'bg-orange-500/20 text-orange-500' },
+              { title: 'Income Certificate', name: 'M. Kavitha', time: '25 min ago', status: 'Completed', icon: FileText, colorClass: 'bg-green-500/20 text-green-500' },
+              { title: 'Nativity Certificate', name: 'R. Prakash', time: '40 min ago', status: 'In Progress', icon: FileText, colorClass: 'bg-blue-500/20 text-blue-500' },
+              { title: 'First Graduate Certificate', name: 'S. Dinesh', time: '1 hour ago', status: 'Pending', icon: FileSignature, colorClass: 'bg-orange-500/20 text-orange-500' },
+              { title: 'Family Certificate', name: 'P. Lakshmi', time: '2 hours ago', status: 'Rejected', icon: FileText, colorClass: 'bg-red-500/20 text-red-500' }
             ].map((app, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${app.bg}/20 text-${app.bg.split('-')[1]}-500`}><app.icon size={18} className={`text-${app.bg.split('-')[1]}-500`} /></div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${app.colorClass}`}><app.icon size={18} /></div>
                 <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{app.title}</p><p className="text-xs text-white/50">Applicant: {app.name}</p></div>
                 <div className="text-right"><p className={`text-[10px] font-bold ${app.status === 'Completed' ? 'text-green-500' : app.status === 'Pending' ? 'text-orange-500' : app.status === 'Rejected' ? 'text-red-500' : 'text-blue-500'}`}>{app.status}</p><p className="text-[10px] text-white/30">{app.time}</p></div>
               </div>

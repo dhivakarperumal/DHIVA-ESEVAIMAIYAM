@@ -4,7 +4,6 @@ import {
   Search, 
   Download, 
   Plus, 
-  Filter, 
   RefreshCcw, 
   MoreVertical,
   Eye,
@@ -19,7 +18,9 @@ import {
   UserPlus,
   Users,
   X,
-  EyeOff
+  EyeOff,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 const mockUsers = [
@@ -134,6 +135,7 @@ const UserManagement = () => {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
 
   const toggleUserSelection = (id) => {
     setSelectedUsers(prev => 
@@ -208,24 +210,33 @@ const UserManagement = () => {
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
         </div>
 
-        <div className="relative min-w-[140px]">
-          <select className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-gray-600 text-white cursor-pointer">
-            <option>All Centers</option>
-            <option>Head Office</option>
-            <option>Vellore Center</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-        </div>
-
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-orange-500/30 text-orange-500 hover:bg-orange-500/10 transition-colors">
-          <Filter size={16} />
-          <span>Filter</span>
-        </button>
-
         <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors">
           <RefreshCcw size={16} />
           <span>Reset</span>
         </button>
+
+        <div className="ml-auto flex items-center rounded-lg border border-gray-700 bg-[#0f1115] p-1" aria-label="User view mode">
+          <button
+            type="button"
+            onClick={() => setViewMode('card')}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${viewMode === 'card' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}
+            aria-pressed={viewMode === 'card'}
+            title="Card view"
+          >
+            <LayoutGrid size={16} />
+            <span className="hidden sm:inline">Cards</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${viewMode === 'table' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}
+            aria-pressed={viewMode === 'table'}
+            title="Table view"
+          >
+            <List size={16} />
+            <span className="hidden sm:inline">Table</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -292,7 +303,7 @@ const UserManagement = () => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden">
+      <div className={`${viewMode === 'table' ? '' : 'hidden'} bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -431,6 +442,34 @@ const UserManagement = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className={`${viewMode === 'card' ? '' : 'hidden'} grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3`}>
+        {mockUsers.map((user) => (
+          <article key={user.id} className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5 transition-colors hover:border-orange-500/40">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <img src={user.avatar} alt={user.name} className="h-12 w-12 rounded-full object-cover" />
+                <div>
+                  <h3 className="font-medium text-white">{user.name}</h3>
+                  <p className="text-xs text-gray-500">@{user.username}</p>
+                </div>
+              </div>
+              <span className={`rounded border px-2 py-1 text-xs font-medium ${user.status === 'Active' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 'border-red-500/20 bg-red-500/10 text-red-500'}`}>{user.status}</span>
+            </div>
+            <div className="mt-5 space-y-2 border-t border-gray-800 pt-4 text-sm">
+              <div className="flex justify-between gap-3"><span className="text-gray-500">Role</span><span className="text-right text-gray-300">{user.role}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-gray-500">Center</span><span className="text-right text-gray-300">{user.center}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-gray-500">Mobile</span><span className="text-right text-gray-300">{user.mobile}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-gray-500">Joined</span><span className="text-right text-gray-300">{user.joinedDate}</span></div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2 border-t border-gray-800 pt-4">
+              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white" title="View"><Eye size={16} /></button>
+              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-blue-400" title="Edit"><Edit2 size={16} /></button>
+              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-red-400" title="Delete"><Trash2 size={16} /></button>
+            </div>
+          </article>
+        ))}
       </div>
 
       {/* Add User Drawer Overlay & Panel (Portaled to body) */}

@@ -23,6 +23,23 @@ async function initDB() {
     const connection = await pool.getConnection();
     await connection.ping();
 
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL UNIQUE,
+        username VARCHAR(100) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        mobile VARCHAR(20) DEFAULT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'Customer',
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_by VARCHAR(100) DEFAULT NULL,
+        updated_by VARCHAR(100) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     // Ensure category table exists for application features that depend on it
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS categories (
