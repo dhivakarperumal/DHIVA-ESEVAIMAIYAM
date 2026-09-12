@@ -101,7 +101,7 @@ const Header = ({ onMenuClick }) => {
 
   return (
     <header className="sticky top-0 z-30 bg-[#0d0d12] border-b border-white/10">
-      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-0 sm:h-[72px]" ref={dropdownRef}>
+      <div className="flex items-center justify-between gap-3 px-5 py-3 sm:px-6 sm:py-0 sm:h-[72px]" ref={dropdownRef}>
 
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
@@ -114,14 +114,14 @@ const Header = ({ onMenuClick }) => {
           </button>
 
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#f8740e] sm:h-10 sm:w-10">
+            <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#f8740e] sm:flex sm:h-10 sm:w-10">
               <PageIcon size={18} className="sm:h-5 sm:w-5" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="hidden min-w-0 flex-1 sm:block">
               <h1 className="truncate text-sm font-semibold text-white leading-tight sm:text-xl">
                 {pageTitle}
               </h1>
-              <p className="mt-0.5 hidden text-[10px] text-white/50 leading-tight sm:block">
+              <p className="mt-0.5 text-[10px] text-white/50 leading-tight">
                 Welcome {getGreeting()}, {userName}!
               </p>
             </div>
