@@ -9,6 +9,7 @@ import {
   FileText,
   Grid2X2,
   Pencil,
+  Plus,
   Search,
   SlidersHorizontal,
   Table2,
@@ -204,7 +205,7 @@ const Applications = () => {
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#11131a]">
         <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between md:p-5">
-          <div className="flex w-full max-w-xl items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 shadow-inner shadow-black/20">
+          <div className="flex w-1/2 min-w-[220px] max-w-xl items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 shadow-inner shadow-black/20">
             <Search size={20} className="shrink-0 text-white/45" />
             <input
               value={query}
@@ -215,37 +216,37 @@ const Applications = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-3 md:ml-0">
-             <select
-                    value={serviceFilter}
-                    onChange={(event) => setServiceFilter(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
-                  >
-                    <option>All</option>
-                    {services.map((service) => (
-                      <option key={service}>{service}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={centerFilter}
-                    onChange={(event) => setCenterFilter(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
-                  >
-                    <option>All</option>
-                    {centers.map((center) => (
-                      <option key={center}>{center}</option>
-                    ))}
-                  </select>
+            <select
+              value={serviceFilter}
+              onChange={(event) => setServiceFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
+            >
+              <option>All</option>
+              {services.map((service) => (
+                <option key={service}>{service}</option>
+              ))}
+            </select>
+            <select
+              value={centerFilter}
+              onChange={(event) => setCenterFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
+            >
+              <option>All</option>
+              {centers.map((center) => (
+                <option key={center}>{center}</option>
+              ))}
+            </select>
 
-             <select
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
-                  >
-                    <option>All</option>
-                    <option>Approved</option>
-                    <option>Pending</option>
-                    <option>Review</option>
-                  </select>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
+            >
+              <option>All</option>
+              <option>Approved</option>
+              <option>Pending</option>
+              <option>Review</option>
+            </select>
 
             <div
               className="flex items-center rounded-lg border border-white/10 bg-white/5 p-1"
@@ -272,6 +273,14 @@ const Applications = () => {
                 <span className="hidden sm:inline">Cards</span>
               </button>
             </div>
+
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#f8740e] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#ff8a2d]"
+            >
+              <Plus size={16} />
+              Add New Application
+            </button>
           </div>
         </div>
 
