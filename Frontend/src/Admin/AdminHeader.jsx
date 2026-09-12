@@ -5,7 +5,7 @@ import {
   Building2, CalendarDays, LayoutDashboard, Users,
   ClipboardList, FolderKanban, CreditCard, FileText,
   Briefcase, BarChart3, Megaphone, Server, MonitorSmartphone,
-  Search, X
+  Search, X, Menu
 } from "lucide-react";
 import { useAuth } from "../PrivateRouter/AuthContext";
 
@@ -101,25 +101,35 @@ const Header = ({ onMenuClick }) => {
 
   return (
     <header className="sticky top-0 z-30 bg-[#0d0d12] border-b border-white/10">
-      <div className="flex items-center justify-between px-4 sm:px-6 h-[72px] gap-4" ref={dropdownRef}>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-0 sm:h-[72px]" ref={dropdownRef}>
 
-        {/* ── Left: Page Icon + Title + Greeting ── */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#f8740e]">
-            <PageIcon size={20} />
-          </div>
-          <div className="flex flex-col justify-center">
-            <h1 className="text-xl font-semibold text-white leading-tight">{pageTitle}</h1>
-            <p className="text-xs text-white/50 leading-tight mt-0.5">
-              Welcome {getGreeting()}, {userName}!
-            </p>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="lg:hidden flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition hover:border-white/20 hover:text-white"
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#f8740e] sm:h-10 sm:w-10">
+              <PageIcon size={18} className="sm:h-5 sm:w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-sm font-semibold text-white leading-tight sm:text-xl">
+                {pageTitle}
+              </h1>
+              <p className="mt-0.5 hidden text-[10px] text-white/50 leading-tight sm:block">
+                Welcome {getGreeting()}, {userName}!
+              </p>
+            </div>
           </div>
         </div>
 
-
-
         {/* ── Right: Actions ── */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
 
 
 
