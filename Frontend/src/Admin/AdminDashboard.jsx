@@ -30,7 +30,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen space-y-6 pb-6 text-white">
+    <div className="min-h-screen space-y-6 p-4 sm:p-2 pb-6 text-white">
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Vanakkam, <span className="text-[#f8740e]">{name}! 👋</span></h1>
         <p className="mt-1 text-sm text-white/60 sm:text-base">Welcome to E-Sevai Maiyam Admin Dashboard</p>
@@ -44,7 +44,7 @@ const AdminDashboard = () => {
           { icon: IndianRupee, label: 'Total Revenue', value: '₹ 48,750', change: '15.2%', type: 'up', bg: 'bg-orange-500/20 text-orange-500' },
           { icon: Users, label: 'Registered Users', value: '532', change: '12.4%', type: 'up', bg: 'bg-teal-500/20 text-teal-500' }
         ].map((s, i) => (
-          <div key={i} className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5">
+          <div key={i} className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 min-w-0">
             <div className="mb-4 flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.bg}`}><s.icon size={20} /></div>
               <div className="min-w-0">
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Application Overview</h2>
             <select className="bg-[#0d0d12] border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70"><option>This Month</option></select>
@@ -84,7 +84,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 min-w-0">
           <h2 className="font-bold text-sm mb-4">Applications by Status</h2>
           <div className="flex items-center justify-center relative h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 min-w-0">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-sm">Recent Applications</h2>
             <button className="text-[#f8740e] text-xs">View All</button>
@@ -134,7 +134,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Expense Overview</h2>
             <button className="text-[#f8740e] text-xs">View All</button>
@@ -164,7 +164,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Top Expenses</h2>
             <button className="text-[#f8740e] text-xs">View All</button>
@@ -205,7 +205,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5">
+        <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 min-w-0">
           <h2 className="font-bold text-sm mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[
