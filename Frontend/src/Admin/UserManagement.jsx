@@ -187,7 +187,7 @@ const UserManagement = () => {
           <input 
             type="text" 
             placeholder="Search by name, email, mobile or username..." 
-            className="w-full bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-600 text-white placeholder-gray-500"
+            className="w-1/2 bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-600 text-white placeholder-gray-500"
           />
         </div>
         
@@ -210,10 +210,7 @@ const UserManagement = () => {
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
         </div>
 
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors">
-          <RefreshCcw size={16} />
-          <span>Reset</span>
-        </button>
+       
 
         <div className="ml-auto flex items-center rounded-lg border border-gray-700 bg-[#0f1115] p-1" aria-label="User view mode">
           <button
