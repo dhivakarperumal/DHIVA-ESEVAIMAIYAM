@@ -101,9 +101,9 @@ const Header = ({ onMenuClick }) => {
 
   return (
     <header className="sticky top-0 z-30 bg-[#0d0d12] border-b border-white/10">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 sm:px-6 sm:py-0 sm:h-[72px]" ref={dropdownRef}>
+      <div className="flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-0 sm:h-[72px]" ref={dropdownRef}>
 
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onMenuClick}
@@ -113,15 +113,15 @@ const Header = ({ onMenuClick }) => {
             <Menu size={18} />
           </button>
 
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#f8740e] sm:flex sm:h-10 sm:w-10">
-              <PageIcon size={18} className="sm:h-5 sm:w-5" />
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#f8740e] sm:h-10 sm:w-10">
+              <PageIcon size={16} className="sm:h-5 sm:w-5" />
             </div>
-            <div className="hidden min-w-0 flex-1 sm:block">
+            <div className="min-w-0 flex-1">
               <h1 className="truncate text-sm font-semibold text-white leading-tight sm:text-xl">
                 {pageTitle}
               </h1>
-              <p className="mt-0.5 text-[10px] text-white/50 leading-tight">
+              <p className="hidden sm:block mt-0.5 text-[10px] text-white/50 leading-tight">
                 Welcome {getGreeting()}, {userName}!
               </p>
             </div>
@@ -147,7 +147,7 @@ const Header = ({ onMenuClick }) => {
             </button>
 
             {searchFocused && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-[#13141a] border border-white/10 rounded-xl shadow-2xl z-50 py-2">
+              <div className="absolute right-[-88px] sm:right-0 top-full mt-2 w-64 sm:w-72 bg-[#13141a] border border-white/10 rounded-xl shadow-2xl z-50 py-2">
                 {/* Input */}
                 <div className="px-3 pb-2 border-b border-white/10">
                   <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-white/5 border border-white/10 focus-within:border-[#f8740e]/50 focus-within:shadow-[0_0_0_2px_rgba(248,116,14,0.1)] transition-all">
@@ -212,7 +212,7 @@ const Header = ({ onMenuClick }) => {
               </span>
             </button>
             {activeDropdown === "notifications" && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-[#13141a] border border-white/10 rounded-xl shadow-2xl z-50 py-2">
+              <div className="absolute right-[-44px] sm:right-0 top-full mt-2 w-64 sm:w-72 bg-[#13141a] border border-white/10 rounded-xl shadow-2xl z-50 py-2">
                 <div className="px-4 py-2 border-b border-white/10 flex justify-between items-center">
                   <span className="text-sm font-bold text-white">Notifications</span>
                   <span className="text-xs text-[#f8740e] cursor-pointer hover:underline" onClick={() => setActiveDropdown(null)}>Mark all read</span>

@@ -137,21 +137,21 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
           transition-all duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
-          ${collapsed ? "w-[80px]" : "w-[304px]"}
+          ${collapsed ? "w-[80px]" : "w-[280px] lg:w-[304px]"}
         `}
       >
         {/* ========== LOGO ========== */}
-        <div className={`flex items-center gap-3 shrink-0 border-b border-white/10 ${collapsed ? "px-3 py-6 justify-center" : "px-6 py-6"}`}>
-          <div className="w-12 h-12 rounded-full bg-[#f8740e] flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-2xl leading-none">D</span>
+        <div className={`flex items-center gap-3 shrink-0 border-b border-white/10 ${collapsed ? "px-3 py-6 justify-center" : "px-4 py-5 lg:px-6 lg:py-6"}`}>
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f8740e] flex items-center justify-center shrink-0">
+            <span className="text-white font-black text-xl lg:text-2xl leading-none">D</span>
           </div>
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-black text-white leading-tight tracking-wide">
+              <h1 className="text-base lg:text-lg font-black text-white leading-tight tracking-wide truncate">
                 E SEVAI MAIYAM
               </h1>
-              <p className="text-xs text-white/50 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] lg:text-xs text-white/50 font-bold uppercase tracking-widest mt-0.5 truncate">
                 Admin Portal
               </p>
             </div>
@@ -159,9 +159,9 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
 
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg text-white/40 hover:bg-white/10 lg:hidden"
+            className="ml-auto p-1.5 rounded-lg text-white/40 hover:bg-white/10 lg:hidden shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
