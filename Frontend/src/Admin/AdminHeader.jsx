@@ -34,12 +34,9 @@ const searchLinks = [
   { label: "Certificates",          path: "/admin/certificates",           icon: FileText },
   { label: "Expense Management",    path: "/admin/expenses",               icon: Briefcase },
   { label: "Reports",               path: "/admin/reports",                icon: BarChart3 },
-  { label: "Notice & Announcements",path: "/admin/announcements",          icon: Megaphone },
-  { label: "Center Management",     path: "/admin/center-management",      icon: Server },
+  
   { label: "Equipment Management",  path: "/admin/equipment-management",   icon: MonitorSmartphone },
-  { label: "Audit Logs",            path: "/admin/audit-logs",             icon: FileText },
-  { label: "Settings",              path: "/admin/settings",               icon: Settings },
-];
+]
 
 const getPageInfo = (pathname) => {
   const sorted = Object.entries(pageInfo).sort((a, b) => b[0].length - a[0].length);

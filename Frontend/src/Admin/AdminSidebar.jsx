@@ -141,9 +141,9 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
         `}
       >
         {/* ========== LOGO ========== */}
-        <div className={`flex items-center gap-3 shrink-0 ${collapsed ? "px-3 py-6 justify-center" : "px-6 py-6"}`}>
+        <div className={`flex items-center gap-3 shrink-0 border-b border-white/10 ${collapsed ? "px-3 py-6 justify-center" : "px-6 py-6"}`}>
           <div className="w-12 h-12 rounded-full bg-[#f8740e] flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-2xl leading-none">e</span>
+            <span className="text-white font-black text-2xl leading-none">D</span>
           </div>
 
           {!collapsed && (
