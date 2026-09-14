@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Eye, FileText, LayoutGrid, List, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, Eye, FileText, Filter, LayoutGrid, List, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../api';
@@ -27,6 +27,7 @@ export default function ServiceManagement() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All Categories');
   const [status, setStatus] = useState('All Status');
+  const [appliedFilters, setAppliedFilters] = useState({ search: '', category: 'All Categories', status: 'All Status' });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -56,10 +57,10 @@ export default function ServiceManagement() {
   }, []);
 
   const filteredServices = useMemo(() => services.filter((service) => {
-    const query = search.trim().toLowerCase();
+    const query = appliedFilters.search.trim().toLowerCase();
     const matchesSearch = !query || service.service_name.toLowerCase().includes(query) || service.service_code.toLowerCase().includes(query);
-    return matchesSearch && (category === 'All Categories' || service.category === category) && (status === 'All Status' || service.status === status);
-  }), [services, search, category, status]);
+    return matchesSearch && (appliedFilters.category === 'All Categories' || service.category === appliedFilters.category) && (appliedFilters.status === 'All Status' || service.status === appliedFilters.status);
+  }), [services, appliedFilters]);
 
   const deleteService = async (service) => {
     if (!window.confirm(`Delete ${service.service_name}? This cannot be undone.`)) return;
@@ -77,7 +78,7 @@ export default function ServiceManagement() {
   return <div className="flex flex-col gap-6 p-2 text-white sm:p-4">
     <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="mb-1 text-2xl font-semibold">All Services</h1><div className="flex items-center gap-2 text-sm text-gray-400"><span>Dashboard</span><span className="text-gray-600">&gt;</span><span>Services</span><span className="text-gray-600">&gt;</span><span className="text-gray-200">All Services</span></div></div><button onClick={() => { setEditingServiceId(null); setIsAddOpen(true); }} className="flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-600"><Plus size={18} /> Add New Service</button></div>
 
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-800 bg-[#1a1c23] p-4"><div className="relative min-w-[240px] flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by service name or code..." className="w-full rounded-lg border border-gray-800 bg-[#0f1115] py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-orange-500" /></div><div className="min-w-[170px]"><Select value={category} onChange={(event) => setCategory(event.target.value)}><option>All Categories</option>{categories.map((item) => <option key={item}>{item}</option>)}</Select></div><div className="min-w-[140px]"><Select value={status} onChange={(event) => setStatus(event.target.value)}><option>All Status</option><option>Active</option><option>Inactive</option></Select></div><button onClick={() => { setSearch(''); setCategory('All Categories'); setStatus('All Status'); loadServices(); }} className="flex items-center gap-2 rounded-lg border border-gray-700 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-800"><RefreshCcw size={16} /> Reset</button><div className="ml-auto flex items-center rounded-lg border border-gray-700 bg-[#0f1115] p-1"><button type="button" onClick={() => setViewMode('table')} title="Table view" className={`rounded-md p-2 ${viewMode === 'table' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><List size={17} /></button><button type="button" onClick={() => setViewMode('card')} title="Card view" className={`rounded-md p-2 ${viewMode === 'card' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><LayoutGrid size={17} /></button></div></div>
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-800 bg-[#1a1c23] p-4"><div className="relative min-w-[240px] flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by service name or code..." className="w-full rounded-lg border border-gray-800 bg-[#0f1115] py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-orange-500" /></div><div className="min-w-[170px]"><Select value={category} onChange={(event) => setCategory(event.target.value)}><option>All Categories</option>{categories.map((item) => <option key={item}>{item}</option>)}</Select></div><div className="min-w-[140px]"><Select value={status} onChange={(event) => setStatus(event.target.value)}><option>All Status</option><option>Active</option><option>Inactive</option></Select></div><button onClick={() => setAppliedFilters({ search, category, status })} className="flex items-center gap-2 rounded-lg border border-orange-500/30 px-4 py-2.5 text-sm text-orange-500 hover:bg-orange-500/10"><Filter size={16} /> Apply</button><button onClick={() => { setSearch(''); setCategory('All Categories'); setStatus('All Status'); setAppliedFilters({ search: '', category: 'All Categories', status: 'All Status' }); loadServices(); }} className="flex items-center gap-2 rounded-lg border border-gray-700 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-800"><RefreshCcw size={16} /> Reset</button><div className="ml-auto flex items-center rounded-lg border border-gray-700 bg-[#0f1115] p-1"><button type="button" onClick={() => setViewMode('table')} title="Table view" className={`rounded-md p-2 ${viewMode === 'table' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><List size={17} /></button><button type="button" onClick={() => setViewMode('card')} title="Card view" className={`rounded-md p-2 ${viewMode === 'card' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><LayoutGrid size={17} /></button></div></div>
 
     {viewMode === 'table' ? <div className="overflow-hidden rounded-xl border border-gray-800 bg-[#1a1c23]"><div className="overflow-x-auto"><table className="w-full border-collapse text-left"><thead><tr className="border-b border-gray-800 text-sm text-gray-400"><th className="w-12 px-4 py-4"><input type="checkbox" checked={filteredServices.length > 0 && selectedIds.length === filteredServices.length} onChange={toggleAll} className="h-4 w-4 accent-orange-500" /></th><th className="px-4 py-4 font-medium">Service Name</th><th className="px-4 py-4 font-medium">Service Code</th><th className="px-4 py-4 font-medium">Category</th><th className="px-4 py-4 font-medium">Total Amount</th><th className="px-4 py-4 font-medium">Status</th><th className="px-4 py-4 text-center font-medium">Actions</th></tr></thead><tbody>
       {loading && <tr><td colSpan="7" className="px-4 py-16 text-center text-sm text-gray-400">Loading services...</td></tr>}
