@@ -109,6 +109,28 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS service_required_documents (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        service_id INT NOT NULL,
+        document_name VARCHAR(255) NOT NULL,
+        document_type VARCHAR(50) NOT NULL,
+        required_status VARCHAR(20) NOT NULL DEFAULT 'Required',
+        applicant_type VARCHAR(50) NOT NULL DEFAULT 'All',
+        document_description TEXT DEFAULT NULL,
+        accepted_formats TEXT NOT NULL,
+        max_file_size VARCHAR(20) NOT NULL DEFAULT '5 MB',
+        number_of_documents VARCHAR(20) NOT NULL DEFAULT 'Single',
+        issuing_authority VARCHAR(100) NOT NULL DEFAULT 'Other',
+        display_order INT NOT NULL DEFAULT 1,
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_service_document_name (service_id, document_name),
+        FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     // --- Expense Management Tables ---
 
     await connection.execute(`

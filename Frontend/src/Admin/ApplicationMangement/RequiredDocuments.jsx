@@ -1,247 +1,41 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Search, 
-  Download, 
-  Plus, 
-  Filter, 
-  RefreshCcw,
-  Eye,
-  Edit2,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  FileText,
-  Save,
-  ChevronDown
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Edit2, Eye, FileText, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../../api';
 
-const mockDocuments = [
-  { id: 1, name: 'Aadhaar Card', type: 'ID Proof / Address Proof', description: 'UIDAI Aadhaar Card (Front and Back)', status: 'Active' },
-  { id: 2, name: 'PAN Card', type: 'ID Proof', description: 'Permanent Account Number Card', status: 'Active' },
-  { id: 3, name: 'Passport Size Photo', type: 'General', description: 'Recent passport size photograph with white background', status: 'Active' },
-  { id: 4, name: 'Income Certificate', type: 'Supporting Document', description: 'Issued by Tahsildar within last 6 months', status: 'Active' },
-  { id: 5, name: 'Ration Card', type: 'Address Proof', description: 'Smart Ration Card copy', status: 'Active' },
-];
+const documentTypes = ['Identity Proof', 'Address Proof', 'Age Proof', 'Supporting Document', 'Certificate'];
+const applicantTypes = ['Individual', 'Student', 'Senior Citizen', 'Business', 'All'];
+const formats = ['PDF', 'JPG', 'JPEG', 'PNG'];
+const sizes = ['2 MB', '5 MB', '10 MB'];
+const empty = { service_id: '', document_name: '', document_type: '', required_status: 'Required', applicant_type: 'All', document_description: '', accepted_formats: [], max_file_size: '5 MB', number_of_documents: 'Single', issuing_authority: 'Other', display_order: 1, status: 'Active' };
+const input = 'w-full rounded-lg border border-gray-800 bg-[#0f1115] px-3 py-2.5 text-sm text-white outline-none placeholder:text-gray-600 focus:border-orange-500';
+const formatList = (value) => Array.isArray(value) ? value : [];
 
-const RequiredDocuments = () => {
-  const [isAddOpen, setIsAddOpen] = useState(false);
+function Select({ name, value, onChange, children }) { return <div className="relative"><select required={name !== 'applicant_type' && name !== 'issuing_authority'} name={name} value={value} onChange={onChange} className={`${input} appearance-none pr-9`}>{children}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 text-gray-500" size={16} /></div>; }
+function Field({ label, required, children }) { return <label className="block"><span className="mb-1.5 block text-sm font-medium text-gray-300">{label}{required && <b className="text-red-500"> *</b>}</span>{children}</label>; }
 
-  return (
-    <div className="flex flex-col gap-6 text-white p-2 sm:p-4">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold mb-1">Required Documents</h1>
-          <div className="text-sm text-gray-400 flex items-center gap-2">
-            <span>Dashboard</span>
-            <span className="text-gray-600">&gt;</span>
-            <span>Service Management</span>
-            <span className="text-gray-600">&gt;</span>
-            <span className="text-gray-200">Required Documents</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-md border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 transition-colors">
-            <Download size={18} />
-            <span>Export</span>
-          </button>
-          <button 
-            onClick={() => setIsAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={18} />
-            <span>Add Document</span>
-          </button>
-        </div>
-      </div>
+function DocumentForm({ value, onChange, onFormats, onSubmit, onCancel, saving, editing }) {
+  return <form onSubmit={onSubmit} className="space-y-4"><Field label="Document Name" required><input required name="document_name" value={value.document_name} onChange={onChange} className={input} placeholder="e.g. Aadhaar Card" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Document Type" required><Select name="document_type" value={value.document_type} onChange={onChange}><option value="">Select type</option>{documentTypes.map((type) => <option key={type}>{type}</option>)}</Select></Field><Field label="Required Status" required><Select name="required_status" value={value.required_status} onChange={onChange}><option>Required</option><option>Optional</option></Select></Field></div><div className="grid gap-4 sm:grid-cols-2"><Field label="Applicant Type"><Select name="applicant_type" value={value.applicant_type} onChange={onChange}>{applicantTypes.map((type) => <option key={type}>{type}</option>)}</Select></Field><Field label="Issuing Authority"><Select name="issuing_authority" value={value.issuing_authority} onChange={onChange}><option>UIDAI</option><option>Government Department</option><option>Other</option></Select></Field></div><Field label="Document Description"><textarea name="document_description" value={value.document_description} onChange={onChange} rows="3" maxLength="500" className={`${input} resize-y`} placeholder="Explain why this document is required" /></Field><Field label="Accepted File Format" required><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{formats.map((format) => <label key={format} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${value.accepted_formats.includes(format) ? 'border-orange-500 bg-orange-500/10 text-orange-400' : 'border-gray-800 text-gray-400'}`}><input type="checkbox" checked={value.accepted_formats.includes(format)} onChange={() => onFormats(format)} className="accent-orange-500" />{format}</label>)}</div></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Maximum File Size" required><Select name="max_file_size" value={value.max_file_size} onChange={onChange}>{sizes.map((size) => <option key={size}>{size}</option>)}</Select></Field><Field label="Number of Documents"><Select name="number_of_documents" value={value.number_of_documents} onChange={onChange}><option>Single</option><option>Multiple</option></Select></Field></div><div className="grid gap-4 sm:grid-cols-2"><Field label="Display Order"><input type="number" min="1" name="display_order" value={value.display_order} onChange={onChange} className={input} /></Field><Field label="Active Status"><Select name="status" value={value.status} onChange={onChange}><option>Active</option><option>Inactive</option></Select></Field></div><div className="flex justify-end gap-3 border-t border-gray-800 pt-4"><button type="button" onClick={onCancel} className="rounded-lg border border-gray-700 px-4 py-2.5 text-sm text-gray-300">Cancel</button><button disabled={saving} type="submit" className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update Document' : 'Add Document'}</button></div></form>;
+}
 
-      {/* Filters Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search documents..." 
-            className="w-full bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-600 text-white placeholder-gray-500"
-          />
-        </div>
-        
-        <div className="relative min-w-[150px]">
-          <select className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-gray-600 text-white cursor-pointer">
-            <option>All Types</option>
-            <option>ID Proof</option>
-            <option>Address Proof</option>
-            <option>General</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-        </div>
+export default function RequiredDocuments() {
+  const [services, setServices] = useState([]); const [serviceId, setServiceId] = useState(''); const [documents, setDocuments] = useState([]); const [loading, setLoading] = useState(false); const [search, setSearch] = useState(''); const [status, setStatus] = useState('All Status'); const [panel, setPanel] = useState(null); const [selected, setSelected] = useState(null); const [form, setForm] = useState(empty); const [saving, setSaving] = useState(false);
+  const selectedService = services.find((service) => String(service.id) === String(serviceId));
+  const loadDocuments = async (id = serviceId) => { if (!id) { setDocuments([]); return; } setLoading(true); try { const { data } = await api.get(`/service-documents?service_id=${id}`); setDocuments(data.data || []); } catch (error) { toast.error(error.response?.data?.message || 'Unable to load required documents.'); } finally { setLoading(false); } };
+  useEffect(() => { api.get('/services').then(({ data }) => { const active = (data.data || []).filter((service) => service.status === 'Active'); setServices(active); if (active[0]) setServiceId(String(active[0].id)); }).catch(() => toast.error('Unable to load services.')); }, []);
+  useEffect(() => { loadDocuments(); }, [serviceId]);
+  const visible = useMemo(() => documents.filter((document) => { const query = search.trim().toLowerCase(); const matches = !query || [document.document_name, document.document_type, document.applicant_type].some((value) => String(value || '').toLowerCase().includes(query)); return matches && (status === 'All Status' || document.status === status); }), [documents, search, status]);
+  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const toggleFormat = (format) => setForm((current) => ({ ...current, accepted_formats: current.accepted_formats.includes(format) ? current.accepted_formats.filter((item) => item !== format) : [...current.accepted_formats, format] }));
+  const add = () => { setForm({ ...empty, service_id: serviceId, display_order: documents.length + 1 }); setSelected(null); setPanel('form'); };
+  const edit = (document) => { setForm({ ...empty, ...document, service_id: String(document.service_id), accepted_formats: formatList(document.accepted_formats) }); setSelected(null); setPanel('form'); };
+  const save = async (event) => { event.preventDefault(); if (!form.accepted_formats.length) { toast.error('Select at least one accepted file format.'); return; } setSaving(true); try { const payload = { ...form, service_id: Number(form.service_id) }; if (form.id) await api.put(`/service-documents/${form.id}`, payload); else await api.post('/service-documents', payload); toast.success(form.id ? 'Document updated successfully.' : 'Document added successfully.'); setPanel(null); await loadDocuments(); } catch (error) { toast.error(error.response?.data?.message || 'Unable to save document.'); } finally { setSaving(false); } };
+  const remove = async (document) => { if (!window.confirm(`Delete ${document.document_name}? This cannot be undone.`)) return; try { await api.delete(`/service-documents/${document.id}`); setDocuments((current) => current.filter((item) => item.id !== document.id)); toast.success('Document deleted successfully.'); } catch (error) { toast.error(error.response?.data?.message || 'Unable to delete document.'); } };
+  const toggleStatus = async (document) => { const next = document.status === 'Active' ? 'Inactive' : 'Active'; try { await api.patch(`/service-documents/${document.id}/status`, { status: next }); setDocuments((current) => current.map((item) => item.id === document.id ? { ...item, status: next } : item)); toast.success(`Document ${next === 'Active' ? 'enabled' : 'disabled'}.`); } catch (error) { toast.error(error.response?.data?.message || 'Unable to update status.'); } };
+  const reorder = async (document, direction) => { const index = documents.findIndex((item) => item.id === document.id); const other = documents[index + direction]; if (!other) return; try { await Promise.all([api.patch(`/service-documents/${document.id}/reorder`, { display_order: other.display_order }), api.patch(`/service-documents/${other.id}/reorder`, { display_order: document.display_order })]); await loadDocuments(); } catch (error) { toast.error(error.response?.data?.message || 'Unable to reorder documents.'); } };
+  const closePanel = () => { setPanel(null); setSelected(null); };
+  const popup = panel && typeof document !== 'undefined' ? createPortal(<div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm" onClick={closePanel}><aside className="h-full w-full max-w-xl overflow-y-auto border-l border-gray-700 bg-[#1a1c23] p-6 text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>{panel === 'form' ? <><div className="mb-5 flex justify-between border-b border-gray-800 pb-4"><h2 className="text-xl font-semibold">{form.id ? 'Edit Document' : 'Add Document'}</h2><button onClick={closePanel} title="Close" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white"><X size={19} /></button></div><DocumentForm value={form} onChange={update} onFormats={toggleFormat} onSubmit={save} onCancel={closePanel} saving={saving} editing={Boolean(form.id)} /></> : <><div className="mb-5 flex justify-between border-b border-gray-800 pb-4"><div><p className="text-xs uppercase text-orange-400">{selected?.document_type}</p><h2 className="text-xl font-semibold">{selected?.document_name}</h2><p className="text-sm text-gray-400">{selectedService?.service_name}</p></div><button onClick={closePanel} title="Close" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white"><X size={19} /></button></div><div className="grid grid-cols-2 gap-3">{[['Required', selected?.required_status], ['Applicant', selected?.applicant_type], ['Format', formatList(selected?.accepted_formats).join(', ')], ['Max Size', selected?.max_file_size], ['Documents', selected?.number_of_documents], ['Authority', selected?.issuing_authority], ['Display Order', selected?.display_order], ['Status', selected?.status]].map(([label, value]) => <div key={label} className="rounded-lg border border-gray-800 bg-[#0f1115] p-3"><p className="text-xs text-gray-500">{label}</p><p className="mt-1 text-sm text-gray-200">{value || 'Not provided'}</p></div>)}</div><p className="mt-4 rounded-lg bg-[#0f1115] p-3 text-sm text-gray-300">{selected?.document_description || 'No description provided.'}</p><button onClick={() => edit(selected)} className="mt-5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium">Edit document</button></>}</aside></div>, document.body) : null;
+  return <><div className="flex flex-col gap-6 p-2 text-white sm:p-4"><div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="mb-1 text-2xl font-semibold">Required Documents</h1><div className="text-sm text-gray-400">Dashboard &gt; Service Management &gt; Required Documents</div></div><button disabled={!serviceId} onClick={add} className="flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2.5 text-sm font-medium disabled:opacity-50"><Plus size={18} /> Add Document</button></div><section className="rounded-xl border border-orange-500/30 bg-[#1a1c23] p-4"><label className="mb-2 block text-sm font-medium text-gray-300">Select Service</label><Select value={serviceId} onChange={(event) => setServiceId(event.target.value)}><option value="">Select a service</option>{services.map((service) => <option key={service.id} value={service.id}>{service.service_name} ({service.service_code})</option>)}</Select>{selectedService && <p className="mt-2 text-xs text-gray-500">Managing required documents for <span className="text-orange-400">{selectedService.service_name}</span>.</p>}</section>{serviceId && <><div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-800 bg-[#1a1c23] p-4"><div className="relative min-w-[240px] flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents..." className={`${input} pl-10`} /></div><div className="min-w-[150px]"><Select value={status} onChange={(event) => setStatus(event.target.value)}><option>All Status</option><option>Active</option><option>Inactive</option></Select></div><button onClick={() => loadDocuments()} title="Refresh documents" className="rounded-lg border border-gray-700 p-2.5 text-gray-400"><RefreshCcw size={18} /></button></div><div className="overflow-hidden rounded-xl border border-gray-800 bg-[#1a1c23]"><div className="overflow-x-auto"><table className="w-full border-collapse text-left"><thead><tr className="border-b border-gray-800 text-sm text-gray-400"><th className="px-4 py-4">Document Name</th><th className="px-4 py-4">Type</th><th className="px-4 py-4">Required</th><th className="px-4 py-4">Applicant</th><th className="px-4 py-4">Format / Size</th><th className="px-4 py-4">Order</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-center">Actions</th></tr></thead><tbody>{loading && <tr><td colSpan="8" className="px-4 py-16 text-center text-gray-400">Loading documents...</td></tr>}{!loading && !visible.length && <tr><td colSpan="8" className="px-4 py-16 text-center"><FileText className="mx-auto mb-3 text-gray-600" size={32} /><p className="text-gray-400">No documents configured for {selectedService?.service_name || 'this service'}.</p><p className="mt-1 text-xs text-gray-600">Add documents to define what applicants must submit.</p></td></tr>}{!loading && visible.map((document) => <tr key={document.id} className="border-b border-gray-800/60"><td className="px-4 py-3"><div className="font-medium text-white">{document.document_name}</div><div className="max-w-[220px] truncate text-xs text-gray-500">{document.document_description || 'No description'}</div></td><td className="px-4 py-3 text-sm text-gray-300">{document.document_type}</td><td className="px-4 py-3"><span className="rounded border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-xs text-orange-400">{document.required_status}</span></td><td className="px-4 py-3 text-sm text-gray-300">{document.applicant_type}</td><td className="px-4 py-3 text-xs text-gray-400">{formatList(document.accepted_formats).join(', ')}<br />{document.max_file_size}</td><td className="px-4 py-3 text-sm text-gray-300">{document.display_order}</td><td className="px-4 py-3"><button onClick={() => toggleStatus(document)} className={`rounded border px-2 py-1 text-xs ${document.status === 'Active' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 'border-red-500/20 bg-red-500/10 text-red-500'}`}>{document.status}</button></td><td className="px-4 py-3"><div className="flex justify-center gap-1"><button onClick={() => { setSelected(document); setPanel('view'); }} title="View" className="p-2 text-gray-400 hover:text-white"><Eye size={16} /></button><button onClick={() => edit(document)} title="Edit" className="p-2 text-gray-400 hover:text-blue-400"><Edit2 size={16} /></button><button onClick={() => remove(document)} title="Delete" className="p-2 text-gray-400 hover:text-red-400"><Trash2 size={16} /></button><button onClick={() => reorder(document, -1)} title="Move up" className="p-2 text-gray-400 hover:text-white"><ArrowUp size={15} /></button><button onClick={() => reorder(document, 1)} title="Move down" className="p-2 text-gray-400 hover:text-white"><ArrowDown size={15} /></button></div></td></tr>)}</tbody></table></div></div></>}</div>{popup}</>;
+}
 
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-orange-500/30 text-orange-500 hover:bg-orange-500/10 transition-colors">
-          <Filter size={16} />
-          <span>Filter</span>
-        </button>
-
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors">
-          <RefreshCcw size={16} />
-          <span>Reset</span>
-        </button>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-sm">
-                <th className="py-4 px-4 pl-6 font-medium">Document Name</th>
-                <th className="py-4 px-4 font-medium">Type</th>
-                <th className="py-4 px-4 font-medium">Description</th>
-                <th className="py-4 px-4 font-medium">Status</th>
-                <th className="py-4 px-4 pr-6 font-medium text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockDocuments.map((doc) => (
-                <tr key={doc.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                  <td className="py-3 px-4 pl-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-500/20 text-blue-400">
-                        <FileText size={20} />
-                      </div>
-                      <div className="font-medium text-white text-sm">{doc.name}</div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-300">
-                    <span className="bg-gray-800 px-2.5 py-1 rounded-md">{doc.type}</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-400 max-w-md truncate">
-                    {doc.description}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-                      doc.status === 'Active' 
-                        ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                        : 'bg-red-500/10 text-red-500 border-red-500/20'
-                    }`}>
-                      {doc.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 pr-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
-                        <Eye size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-400">
-            Showing 1 to 5 of 5 documents
-          </div>
-          <div className="flex items-center gap-1">
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 disabled:opacity-50">
-              <ChevronLeft size={16} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md bg-orange-500 text-white border border-orange-500">
-              1
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Document Drawer */}
-      {typeof document !== 'undefined' && createPortal(
-        <>
-          {isAddOpen && (
-            <div 
-              className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm" 
-              onClick={() => setIsAddOpen(false)} 
-            />
-          )}
-
-          <div className={`fixed inset-y-0 right-0 w-[400px] bg-[#1a1c23] border-l border-gray-800 shadow-2xl z-[70] transform transition-transform duration-300 flex flex-col ${isAddOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-800">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Add New Document</h2>
-              </div>
-              <button onClick={() => setIsAddOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Document Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Enter document name" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Document Type <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <select defaultValue="" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
-                    <option value="" disabled>Select type</option>
-                    <option value="ID Proof">ID Proof</option>
-                    <option value="Address Proof">Address Proof</option>
-                    <option value="General">General</option>
-                    <option value="Supporting Document">Supporting Document</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Description <span className="text-red-500">*</span></label>
-                <textarea rows="4" placeholder="Enter document description" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 resize-none"></textarea>
-                <div className="text-right text-xs text-gray-500">0 / 250</div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <label className="text-sm text-gray-300 font-medium">Status <span className="text-red-500">*</span></label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" defaultChecked className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
-                    <span className="text-sm text-white">Active</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
-                    <span className="text-sm text-gray-400">Inactive</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-gray-800 flex gap-4 bg-[#1a1c23]">
-              <button onClick={() => setIsAddOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
-                Cancel
-              </button>
-              <button className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                <Save size={18} />
-                <span>Save Document</span>
-              </button>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
-    </div>
-  );
-};
-
-export default RequiredDocuments;
