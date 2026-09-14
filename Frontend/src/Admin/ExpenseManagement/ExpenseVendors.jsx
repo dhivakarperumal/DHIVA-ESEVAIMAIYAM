@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Search, Plus, RefreshCcw, Eye, Edit2, Trash2, X, Save, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import {
+  Search, Plus, RefreshCcw, Eye, Edit2, Trash2, X, Save,
+  Building2, Phone, Mail, MapPin, Layers, CheckCircle2,
+  XCircle, TrendingUp, TrendingDown, Receipt
+} from 'lucide-react';
 
 const API = 'http://localhost:5000/api/expenses';
 const inputClass = "w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50 placeholder-gray-600";
@@ -59,19 +63,39 @@ const ExpenseVendors = () => {
         <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"><Plus size={18} /><span>Add Vendor</span></button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Vendors', value: vendors.length, color: 'text-orange-500 bg-orange-500/10' },
-          { label: 'Active', value: vendors.filter(v => v.status === 'Active').length, color: 'text-green-500 bg-green-500/10' },
-          { label: 'Inactive', value: vendors.filter(v => v.status === 'Inactive').length, color: 'text-red-500 bg-red-500/10' },
-          { label: 'With GST', value: vendors.filter(v => v.gst_number).length, color: 'text-blue-400 bg-blue-500/10' },
-        ].map(s => (
-          <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-3">
-            <div className={`p-2.5 rounded-lg ${s.color}`}><Building2 size={20} /></div>
-            <div><p className="text-gray-400 text-xs">{s.label}</p><h3 className="text-xl font-bold mt-0.5">{s.value}</h3></div>
+      {/* Stats */}
+      {(() => {
+        const activeCount = vendors.filter(v => v.status === 'Active').length;
+        const inactiveCount = vendors.filter(v => v.status === 'Inactive').length;
+        const gstCount = vendors.filter(v => v.gst_number).length;
+        const cards = [
+          { label: 'Total Vendors', value: vendors.length, icon: Building2,    iconBg: 'bg-orange-500', pct: { val: '12.4', up: true  } },
+          { label: 'Active Vendors',value: activeCount,    icon: CheckCircle2, iconBg: 'bg-green-500',  pct: { val: '5.2',  up: true  } },
+          { label: 'Inactive Vendors',value: inactiveCount,icon: XCircle,      iconBg: 'bg-red-600',    pct: { val: '1.5',  up: false }, invertColor: true },
+          { label: 'With GST',      value: gstCount,       icon: Receipt,      iconBg: 'bg-purple-600', pct: { val: '0.8',  up: true  } },
+        ];
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {cards.map(s => {
+              const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+              return (
+                <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+                  <div className={`${s.iconBg} flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg`}>
+                    <s.icon size={22} className="text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-400 truncate">{s.label}</p>
+                    <p className="text-3xl font-bold text-white leading-tight">{s.value}</p>
+                    <p className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {s.pct.up ? '↗' : '↘'} {s.pct.val}% from last month
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex gap-4">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by vendor name or ID..." className="w-full bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-gray-600 placeholder-gray-500" /></div>
@@ -83,7 +107,8 @@ const ExpenseVendors = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-sm">
-                <th className="py-4 px-4 pl-6 font-medium">Vendor</th>
+                <th className="py-4 px-4 pl-6 font-medium w-10">S.No</th>
+                <th className="py-4 px-4 font-medium">Vendor</th>
                 <th className="py-4 px-4 font-medium">Mobile</th>
                 <th className="py-4 px-4 font-medium">Email</th>
                 <th className="py-4 px-4 font-medium">GST</th>
@@ -93,14 +118,15 @@ const ExpenseVendors = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="py-16 text-center text-orange-500"><RefreshCcw className="animate-spin inline mr-2" size={20} />Loading...</td></tr>
+                <tr><td colSpan={7} className="py-16 text-center text-orange-500"><RefreshCcw className="animate-spin inline mr-2" size={20} />Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="py-16 text-center text-gray-500">No vendors found.<br /><button onClick={openAdd} className="text-orange-500 hover:underline text-sm mt-1">Add your first vendor →</button></td></tr>
-              ) : filtered.map(v => (
-                <tr key={v.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                  <td className="py-3 px-4 pl-6">
+                <tr><td colSpan={7} className="py-16 text-center text-gray-500">No vendors found.<br /><button onClick={openAdd} className="text-orange-500 hover:underline text-sm mt-1">Add your first vendor →</button></td></tr>
+              ) : filtered.map((v, idx) => (
+                <tr key={v.id} className="border-b border-gray-800/50 hover:bg-white/[.02] transition-colors">
+                  <td className="py-3 px-4 pl-6 text-sm text-gray-500 font-medium">{idx + 1}</td>
+                  <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0 font-semibold text-sm">{v.vendor_name.charAt(0).toUpperCase()}</div>
+                      <div className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 font-semibold text-sm">{v.vendor_name.charAt(0).toUpperCase()}</div>
                       <div><p className="font-medium text-white">{v.vendor_name}</p><p className="text-xs text-orange-400 font-mono">{v.vendor_id}</p></div>
                     </div>
                   </td>
@@ -108,7 +134,14 @@ const ExpenseVendors = () => {
                   <td className="py-3 px-4 text-gray-300 text-sm">{v.email || '-'}</td>
                   <td className="py-3 px-4 text-gray-400 text-sm font-mono">{v.gst_number || '-'}</td>
                   <td className="py-3 px-4 text-center">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${v.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>{v.status}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${
+                      v.status === 'Active'
+                        ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                        : 'bg-red-500/15 text-red-400 border-red-500/30'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${v.status === 'Active' ? 'bg-green-400' : 'bg-red-400'}`} />
+                      {v.status}
+                    </span>
                   </td>
                   <td className="py-3 px-4 pr-6">
                     <div className="flex items-center justify-center gap-2">
@@ -185,7 +218,7 @@ const ExpenseVendors = () => {
               <div className="relative bg-[#1a1c23] border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
                 <div className="flex items-center justify-between p-5 border-b border-gray-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center font-semibold">{viewingVendor.vendor_name.charAt(0)}</div>
+                    <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">{viewingVendor.vendor_name.charAt(0).toUpperCase()}</div>
                     <div><h2 className="text-lg font-semibold">{viewingVendor.vendor_name}</h2><p className="text-xs text-orange-400 font-mono">{viewingVendor.vendor_id}</p></div>
                   </div>
                   <button onClick={() => setIsViewOpen(false)} className="text-gray-400 hover:text-white"><X size={22} /></button>
