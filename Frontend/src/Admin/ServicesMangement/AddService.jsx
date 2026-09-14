@@ -12,7 +12,6 @@ const initialForm = {
   featured_service: 'No', service_image: '', terms_conditions: '', additional_notes: '',
 };
 
-const categories = ['Certificates', 'Aadhaar Services', 'PAN Services', 'Education', 'Pensions', 'Utility', 'Ration'];
 const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100';
 
 function Section({ icon: Icon, title, description, children }) {
@@ -43,9 +42,46 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
   const fileRef = useRef(null);
   const [form, setForm] = useState(initialForm);
   const [documents, setDocuments] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [codeLoading, setCodeLoading] = useState(!id);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const total = useMemo(() => money(form.government_fee) + money(form.service_charge) + money(form.gst_tax), [form]);
+
+  const selectedCategory = categories.find((category) => category.name === form.category);
+  const subcategories = selectedCategory?.subcategories || [];
+
+  useEffect(() => {
+    let active = true;
+    api.get('/categories').then(({ data }) => {
+      if (!active) return;
+      setCategories((data.data || []).filter((category) => category.status !== 'Inactive'));
+    }).catch(() => {
+      if (active) toast.error('Unable to load service categories.');
+    }).finally(() => {
+      if (active) setCategoriesLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (id) return undefined;
+    let active = true;
+    api.get('/services').then(({ data }) => {
+      if (!active) return;
+      const highestCode = (data.data || []).reduce((highest, service) => {
+        const match = String(service.service_code || '').match(/^SV-(\d+)$/i);
+        return match ? Math.max(highest, Number(match[1])) : highest;
+      }, 0);
+      setForm((current) => ({ ...current, service_code: `SV-${String(highestCode + 1).padStart(3, '0')}` }));
+    }).catch(() => {
+      if (active) toast.error('Unable to generate service code.');
+    }).finally(() => {
+      if (active) setCodeLoading(false);
+    });
+    return () => { active = false; };
+  }, [id]);
 
   useEffect(() => {
     if (!id) return undefined;
@@ -98,18 +134,22 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
 
   return <div className={`${embedded ? 'relative min-h-screen' : 'min-h-full'} bg-slate-50 p-4 text-slate-900 sm:p-6 lg:p-8`}>
     <div className="mx-auto max-w-7xl">
-      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div><div className="mb-2 flex items-center gap-2 text-xs text-slate-500"></div><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{isEditing ? 'Edit Service' : 'Add Service'}</h1><p className="mt-1 text-sm text-slate-500">{isEditing ? 'Update E-Sevai service details' : 'Add and manage E-Sevai services'}</p></div>
-      </div>
-      {embedded && <button type="button" onClick={onCancel} title="Close" aria-label="Close add service" className="absolute right-4 top-4 rounded-lg border border-gray-700 p-2 text-gray-400 transition hover:bg-gray-800 hover:text-white"><X size={19} /></button>}
+      <header className="service-drawer-header mb-7 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {!embedded && <div className="mb-2 flex items-center gap-2 text-xs text-slate-500"><span>Dashboard</span><span>/</span><span>Services</span><span>/</span><span className="text-slate-800">{isEditing ? 'Edit Service' : 'Add Service'}</span></div>}
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{isEditing ? 'Edit Service' : 'Add Service'}</h1>
+          <p className="mt-1 text-sm text-slate-500">{isEditing ? 'Update E-Sevai service details' : 'Add and manage E-Sevai services'}</p>
+        </div>
+        {embedded && <button type="button" onClick={onCancel} title="Close" aria-label="Close add service" className="shrink-0 rounded-lg border border-gray-700 p-2 text-gray-400 transition hover:bg-gray-800 hover:text-white"><X size={19} /></button>}
+      </header>
 
       <form onSubmit={(event) => { event.preventDefault(); save(false); }} className="service-form grid grid-cols-1 gap-5">
         <Section icon={FileText} title="Service Information" description="Basic details visible to staff and citizens">
           <div className={fieldGridClass}>
             <Field label="Service Name" required error={errors.service_name} className="sm:col-span-2"><input name="service_name" value={form.service_name} onChange={update} className={inputClass} placeholder="e.g. Community Certificate" /></Field>
-            <Field label="Service Code" required error={errors.service_code}><input name="service_code" value={form.service_code} onChange={update} className={inputClass} placeholder="e.g. SV-009" /></Field>
-            <Field label="Service Category" required error={errors.category}><Select value={form.category} onChange={(event) => update({ target: { name: 'category', value: event.target.value } })}><option value="">Select category</option>{categories.map((category) => <option key={category}>{category}</option>)}</Select></Field>
-            <Field label="Service Subcategory"><input name="subcategory" value={form.subcategory} onChange={update} className={inputClass} placeholder="e.g. Income Certificate" /></Field>
+            <Field label="Service Code" required error={errors.service_code}><input name="service_code" value={codeLoading ? 'Generating...' : form.service_code} readOnly className={`${inputClass} cursor-not-allowed bg-slate-100 font-mono`} placeholder="SV-001" /><span className="mt-1 block text-xs text-slate-500">Automatically generated from existing services</span></Field>
+            <Field label="Service Category" required error={errors.category}><Select name="category" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value, subcategory: '' }))}><option value="">{categoriesLoading ? 'Loading categories...' : 'Select category'}</option>{categories.map((category) => <option key={category.cid || category.id} value={category.name}>{category.name}</option>)}</Select></Field>
+            <Field label="Service Subcategory"><Select name="subcategory" value={form.subcategory} onChange={update}><option value="">{form.category ? (subcategories.length ? 'Select subcategory' : 'No subcategories') : 'Select a category first'}</option>{subcategories.map((subcategory) => <option key={subcategory} value={subcategory}>{subcategory}</option>)}</Select></Field>
             <Field label="Service Provider / Department"><input name="provider_department" value={form.provider_department} onChange={update} className={inputClass} placeholder="e.g. Revenue Department" /></Field>
             <Field label="Government Portal / Service URL" className="sm:col-span-2"><input type="url" name="portal_url" value={form.portal_url} onChange={update} className={inputClass} placeholder="https://services.gov.in/..." /></Field>
             <Field label="Service Description" className="sm:col-span-2"><textarea name="description" value={form.description} onChange={update} rows="4" maxLength="500" className={`${inputClass} resize-y`} placeholder="Describe what this service helps citizens complete." /><span className="mt-1 block text-right text-xs text-slate-400">{form.description.length}/500</span></Field>
