@@ -159,16 +159,29 @@ const AllExpenses = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Amount', value: fmt(stats.total_amount), icon: IndianRupee, color: 'bg-orange-500/10 text-orange-500' },
-          { label: 'Paid', value: stats.paid, icon: CheckCircle2, color: 'bg-green-500/10 text-green-500' },
-          { label: 'Pending', value: stats.pending, icon: Clock, color: 'bg-red-500/10 text-red-500' },
-          { label: 'Partial', value: stats.partial, icon: AlertCircle, color: 'bg-yellow-500/10 text-yellow-500' },
-        ].map(s => (
-          <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-4">
-            <div className={`p-2.5 rounded-lg ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-gray-400 text-xs">{s.label}</p><h3 className="text-lg font-bold">{s.value}</h3></div>
-          </div>
-        ))}
+          { label: 'Total Amount',  value: fmt(stats.total_amount), icon: IndianRupee,  iconBg: 'bg-orange-500', pct: { val: '12.4', up: true  }                    },
+          { label: 'Paid',          value: stats.paid,              icon: CheckCircle2, iconBg: 'bg-green-500',  pct: { val: '5.2',  up: true  }                    },
+          { label: 'Pending',       value: stats.pending,           icon: Clock,        iconBg: 'bg-red-600',    pct: { val: '1.5',  up: false }, invertColor: true  },
+          { label: 'Partial',       value: stats.partial,           icon: AlertCircle,  iconBg: 'bg-yellow-500', pct: { val: '0.8',  up: true  }                    },
+        ].map(s => {
+          const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+          return (
+            <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+              {/* solid coloured icon box */}
+              <div className={`${s.iconBg} flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg`}>
+                <s.icon size={22} className="text-white" />
+              </div>
+              {/* text */}
+              <div className="min-w-0">
+                <p className="text-sm text-gray-400 truncate">{s.label}</p>
+                <p className="text-3xl font-bold text-white leading-tight">{s.value}</p>
+                <p className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                  {s.pct.up ? '↗' : '↘'} {s.pct.val}% from last month
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Filters */}
