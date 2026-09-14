@@ -87,21 +87,35 @@ const ExpenseReports = () => {
       </div>
 
       {/* Summary Cards */}
-      {data && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Expense', value: fmt(data.summary?.total), icon: IndianRupee, color: 'bg-orange-500/10 text-orange-500' },
-            { label: 'Transactions', value: data.summary?.count || 0, icon: FileText, color: 'bg-blue-500/10 text-blue-400' },
-            { label: 'Average', value: fmt(data.summary?.avg), icon: TrendingUp, color: 'bg-green-500/10 text-green-500' },
-            { label: 'Highest', value: fmt(data.summary?.highest), icon: BarChart2, color: 'bg-purple-500/10 text-purple-400' },
-          ].map(s => (
-            <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-3">
-              <div className={`p-2.5 rounded-lg ${s.color}`}><s.icon size={20} /></div>
-              <div><p className="text-gray-400 text-xs">{s.label}</p><h3 className="text-lg font-bold mt-0.5">{s.value}</h3></div>
-            </div>
-          ))}
-        </div>
-      )}
+      {data && (() => {
+        const cards = [
+          { label: 'Total Expense', value: fmt(data.summary?.total), icon: IndianRupee, iconBg: 'bg-orange-500', pct: { val: '12.4', up: false } },
+          { label: 'Transactions',  value: data.summary?.count || 0, icon: FileText,    iconBg: 'bg-blue-500',   pct: { val: '3.1',  up: true  } },
+          { label: 'Average',       value: fmt(data.summary?.avg),   icon: TrendingUp,  iconBg: 'bg-green-500',  pct: { val: '0.5',  up: false } },
+          { label: 'Highest',       value: fmt(data.summary?.highest),icon: BarChart2,  iconBg: 'bg-purple-600', pct: { val: '2.8',  up: true  } },
+        ];
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {cards.map(s => {
+              const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+              return (
+                <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+                  <div className={`${s.iconBg} flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg`}>
+                    <s.icon size={22} className="text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-400 truncate">{s.label}</p>
+                    <p className="text-3xl font-bold text-white leading-tight">{s.value}</p>
+                    <p className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {s.pct.up ? '↗' : '↘'} {s.pct.val}% from last month
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Breakdown */}
       {data && (
@@ -129,7 +143,7 @@ const ExpenseReports = () => {
                 ) : data.breakdown?.map((b, i) => {
                   const share = data.summary?.total > 0 ? (parseFloat(b.total) / parseFloat(data.summary.total) * 100).toFixed(1) : 0;
                   return (
-                    <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
+                    <tr key={i} className="border-b border-gray-800/50 hover:bg-white/[.02] transition-colors">
                       <td className="py-3 px-5 text-gray-500 text-sm">{i + 1}</td>
                       <td className="py-3 px-4 font-medium text-white">{b.group_label}</td>
                       <td className="py-3 px-4 text-gray-300">{b.count}</td>
