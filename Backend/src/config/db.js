@@ -55,6 +55,38 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS services (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        service_name VARCHAR(255) NOT NULL,
+        service_code VARCHAR(100) NOT NULL UNIQUE,
+        category VARCHAR(255) NOT NULL,
+        subcategory VARCHAR(255) DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        provider_department VARCHAR(255) DEFAULT NULL,
+        portal_url TEXT DEFAULT NULL,
+        government_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        service_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        gst_tax DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        payment_type VARCHAR(30) NOT NULL DEFAULT 'Cash',
+        required_documents TEXT NOT NULL DEFAULT '[]',
+        document_instructions TEXT DEFAULT NULL,
+        processing_time VARCHAR(100) DEFAULT NULL,
+        application_type VARCHAR(30) NOT NULL DEFAULT 'Online',
+        service_availability VARCHAR(50) NOT NULL DEFAULT 'All Days',
+        priority_service VARCHAR(10) NOT NULL DEFAULT 'No',
+        delivery_method VARCHAR(30) NOT NULL DEFAULT 'Online',
+        status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        featured_service VARCHAR(10) NOT NULL DEFAULT 'No',
+        service_image LONGTEXT DEFAULT NULL,
+        terms_conditions TEXT DEFAULT NULL,
+        additional_notes TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     // --- Expense Management Tables ---
 
     await connection.execute(`

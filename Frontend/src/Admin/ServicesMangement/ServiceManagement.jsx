@@ -1,525 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Download, 
-  Plus, 
-  Filter, 
-  RefreshCcw,
-  Eye,
-  Edit2,
-  Trash2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Users,
-  IndianRupee,
-  MapPin,
-  GraduationCap,
-  CreditCard,
-  FileText
-} from 'lucide-react';
+import { ChevronDown, Eye, FileText, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import api from '../../api';
+import AddService from './AddService';
 
-const mockServices = [
-  {
-    id: 1,
-    nameEn: 'Community Certificate',
-    nameTa: 'சமூக சான்றிதழ்',
-    code: 'SV-001',
-    category: 'Certificates',
-    charge: '120',
-    status: 'Active',
-    sortOrder: 1,
-    icon: Users,
-    iconColor: 'text-purple-400',
-    iconBg: 'bg-purple-500/20'
-  },
-  {
-    id: 2,
-    nameEn: 'Income Certificate',
-    nameTa: 'வருமானச் சான்றிதழ்',
-    code: 'SV-002',
-    category: 'Certificates',
-    charge: '120',
-    status: 'Active',
-    sortOrder: 2,
-    icon: IndianRupee,
-    iconColor: 'text-green-400',
-    iconBg: 'bg-green-500/20'
-  },
-  {
-    id: 3,
-    nameEn: 'Nativity Certificate',
-    nameTa: 'இருப்பிடச் சான்றிதழ்',
-    code: 'SV-003',
-    category: 'Certificates',
-    charge: '120',
-    status: 'Active',
-    sortOrder: 3,
-    icon: MapPin,
-    iconColor: 'text-blue-400',
-    iconBg: 'bg-blue-500/20'
-  },
-  {
-    id: 4,
-    nameEn: 'First Graduate Certificate',
-    nameTa: 'முதல் பட்டதாரி சான்றிதழ்',
-    code: 'SV-004',
-    category: 'Education',
-    charge: '150',
-    status: 'Active',
-    sortOrder: 4,
-    icon: GraduationCap,
-    iconColor: 'text-blue-400',
-    iconBg: 'bg-blue-500/20'
-  },
-  {
-    id: 5,
-    nameEn: 'Obc Certificate',
-    nameTa: 'ஒ.பி.சி சான்றிதழ்',
-    code: 'SV-005',
-    category: 'Certificates',
-    charge: '120',
-    status: 'Active',
-    sortOrder: 5,
-    icon: Users,
-    iconColor: 'text-pink-400',
-    iconBg: 'bg-pink-500/20'
-  },
-  {
-    id: 6,
-    nameEn: 'Aadhar Update',
-    nameTa: 'ஆதார் அப்டேட்',
-    code: 'SV-006',
-    category: 'Utility',
-    charge: '50',
-    status: 'Active',
-    sortOrder: 6,
-    icon: CreditCard,
-    iconColor: 'text-teal-400',
-    iconBg: 'bg-teal-500/20'
-  },
-  {
-    id: 7,
-    nameEn: 'Ration Card New',
-    nameTa: 'புதிய ரேஷன் கார்டு',
-    code: 'SV-007',
-    category: 'Ration',
-    charge: '100',
-    status: 'Active',
-    sortOrder: 7,
-    icon: CreditCard,
-    iconColor: 'text-green-400',
-    iconBg: 'bg-green-500/20'
-  },
-  {
-    id: 8,
-    nameEn: 'Ration Card Correction',
-    nameTa: 'ரேஷன் கார்டு திருத்தம்',
-    code: 'SV-008',
-    category: 'Ration',
-    charge: '75',
-    status: 'Inactive',
-    sortOrder: 8,
-    icon: Edit2,
-    iconColor: 'text-orange-400',
-    iconBg: 'bg-orange-500/20'
-  }
-];
+const categories = ['Certificates', 'Aadhaar Services', 'PAN Services', 'Education', 'Pensions', 'Utility', 'Ration'];
 
 const getCategoryColor = (category) => {
-  switch (category) {
-    case 'Certificates': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
-    case 'Education': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    case 'Utility': return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
-    case 'Ration': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-    default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
-  }
+  if (category === 'Certificates') return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+  if (category === 'Education') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+  if (category === 'Utility') return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
+  return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
 };
 
-const ServiceManagement = () => {
-  const location = useLocation();
+const formatAmount = (value) => `₹ ${Number(value || 0).toFixed(2)}`;
+
+function Select({ value, onChange, children }) {
+  return <div className="relative"><select value={value} onChange={onChange} className="w-full appearance-none rounded-lg border border-gray-800 bg-[#0f1115] px-4 py-2.5 pr-9 text-sm text-white outline-none focus:border-orange-500">{children}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 text-gray-500" size={16} /></div>;
+}
+
+export default function ServiceManagement() {
   const navigate = useNavigate();
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [isAddServiceOpen, setIsAddServiceOpen] = useState(location.pathname === '/admin/service-management/add');
+  const [services, setServices] = useState([]);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All Categories');
+  const [status, setStatus] = useState('All Status');
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const loadServices = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/services');
+      setServices(data.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to load services.');
+    } finally { setLoading(false); }
+  };
 
   useEffect(() => {
-    if (location.pathname === '/admin/service-management/add') {
-      setIsAddServiceOpen(true);
-    }
-  }, [location.pathname]);
+    let active = true;
+    api.get('/services').then(({ data }) => {
+      if (active) setServices(data.data || []);
+    }).catch((error) => {
+      if (active) toast.error(error.response?.data?.message || 'Unable to load services.');
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
-  const handleCloseDrawer = () => {
-    setIsAddServiceOpen(false);
-    if (location.pathname === '/admin/service-management/add') {
-      navigate('/admin/service-management/all');
-    }
+  const filteredServices = useMemo(() => services.filter((service) => {
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || service.service_name.toLowerCase().includes(query) || service.service_code.toLowerCase().includes(query);
+    return matchesSearch && (category === 'All Categories' || service.category === category) && (status === 'All Status' || service.status === status);
+  }), [services, search, category, status]);
+
+  const deleteService = async (service) => {
+    if (!window.confirm(`Delete ${service.service_name}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/services/${service.id}`);
+      setServices((current) => current.filter((item) => item.id !== service.id));
+      toast.success('Service deleted successfully.');
+    } catch (error) { toast.error(error.response?.data?.message || 'Unable to delete service.'); }
   };
 
-  const toggleServiceSelection = (id) => {
-    setSelectedServices(prev => 
-      prev.includes(id) ? prev.filter(serviceId => serviceId !== id) : [...prev, id]
-    );
-  };
+  const toggleAll = (event) => setSelected(event.target.checked ? filteredServices.map((service) => service.id) : []);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const toggleSelected = (id) => setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
 
-  const toggleAll = () => {
-    if (selectedServices.length === mockServices.length) {
-      setSelectedServices([]);
-    } else {
-      setSelectedServices(mockServices.map(s => s.id));
-    }
-  };
+  return <div className="flex flex-col gap-6 p-2 text-white sm:p-4">
+    <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="mb-1 text-2xl font-semibold">All Services</h1><div className="flex items-center gap-2 text-sm text-gray-400"><span>Dashboard</span><span className="text-gray-600">&gt;</span><span>Services</span><span className="text-gray-600">&gt;</span><span className="text-gray-200">All Services</span></div></div><button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-600"><Plus size={18} /> Add New Service</button></div>
 
-  return (
-    <div className="flex flex-col gap-6 text-white p-2 sm:p-4">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold mb-1">All Services</h1>
-          <div className="text-sm text-gray-400 flex items-center gap-2">
-            <span>Dashboard</span>
-            <span className="text-gray-600">&gt;</span>
-            <span>Service Management</span>
-            <span className="text-gray-600">&gt;</span>
-            <span className="text-gray-200">All Services</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-md border border-orange-500/50 text-orange-500 hover:bg-orange-500/10 transition-colors">
-            <Download size={18} />
-            <span>Export</span>
-          </button>
-          <button 
-            onClick={() => {
-              setIsAddServiceOpen(true);
-              navigate('/admin/service-management/add');
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={18} />
-            <span>Add New Service</span>
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-800 bg-[#1a1c23] p-4"><div className="relative min-w-[240px] flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by service name or code..." className="w-full rounded-lg border border-gray-800 bg-[#0f1115] py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-orange-500" /></div><div className="min-w-[170px]"><Select value={category} onChange={(event) => setCategory(event.target.value)}><option>All Categories</option>{categories.map((item) => <option key={item}>{item}</option>)}</Select></div><div className="min-w-[140px]"><Select value={status} onChange={(event) => setStatus(event.target.value)}><option>All Status</option><option>Active</option><option>Inactive</option></Select></div><button onClick={() => { setSearch(''); setCategory('All Categories'); setStatus('All Status'); loadServices(); }} className="flex items-center gap-2 rounded-lg border border-gray-700 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-800"><RefreshCcw size={16} /> Reset</button></div>
 
-      {/* Filters Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by service name or code..." 
-            className="w-full bg-[#0f1115] border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-600 text-white placeholder-gray-500"
-          />
-        </div>
-        
-        <div className="relative min-w-[140px]">
-          <select className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-gray-600 text-white cursor-pointer">
-            <option>All Categories</option>
-            <option>Certificates</option>
-            <option>Education</option>
-            <option>Utility</option>
-            <option>Ration</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-        </div>
+    <div className="overflow-hidden rounded-xl border border-gray-800 bg-[#1a1c23]"><div className="overflow-x-auto"><table className="w-full border-collapse text-left"><thead><tr className="border-b border-gray-800 text-sm text-gray-400"><th className="w-12 px-4 py-4"><input type="checkbox" checked={filteredServices.length > 0 && selectedIds.length === filteredServices.length} onChange={toggleAll} className="h-4 w-4 accent-orange-500" /></th><th className="px-4 py-4 font-medium">Service Name</th><th className="px-4 py-4 font-medium">Service Code</th><th className="px-4 py-4 font-medium">Category</th><th className="px-4 py-4 font-medium">Total Amount</th><th className="px-4 py-4 font-medium">Status</th><th className="px-4 py-4 text-center font-medium">Actions</th></tr></thead><tbody>
+      {loading && <tr><td colSpan="7" className="px-4 py-16 text-center text-sm text-gray-400">Loading services...</td></tr>}
+      {!loading && filteredServices.length === 0 && <tr><td colSpan="7" className="px-4 py-16 text-center text-sm text-gray-400">No services found.</td></tr>}
+      {!loading && filteredServices.map((service) => <tr key={service.id} className="border-b border-gray-800/60 hover:bg-gray-800/20"><td className="px-4 py-3"><input type="checkbox" checked={selectedIds.includes(service.id)} onChange={() => toggleSelected(service.id)} className="h-4 w-4 accent-orange-500" /></td><td className="min-w-[240px] px-4 py-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400"><FileText size={19} /></div><div><div className="text-sm font-medium text-white">{service.service_name}</div><div className="text-xs text-gray-500">{service.subcategory || service.provider_department || 'E-Sevai service'}</div></div></div></td><td className="px-4 py-3 font-mono text-sm text-gray-300">{service.service_code}</td><td className="px-4 py-3"><span className={`inline-flex rounded border px-2 py-1 text-xs font-medium ${getCategoryColor(service.category)}`}>{service.category}</span></td><td className="px-4 py-3 text-sm text-gray-300">{formatAmount(service.total_amount)}</td><td className="px-4 py-3"><span className={`inline-flex rounded border px-2 py-1 text-xs font-medium ${service.status === 'Active' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 'border-red-500/20 bg-red-500/10 text-red-500'}`}>{service.status}</span></td><td className="px-4 py-3"><div className="flex justify-center gap-1"><button onClick={() => setSelected(service)} title="View service" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white"><Eye size={16} /></button><button onClick={() => navigate(`/admin/service-management/edit/${service.id}`)} title="Edit service" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-blue-400"><Pencil size={16} /></button><button onClick={() => deleteService(service)} title="Delete service" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-red-400"><Trash2 size={16} /></button></div></td></tr>)}
+    </tbody></table></div><div className="border-t border-gray-800 px-4 py-4 text-sm text-gray-400">Showing {filteredServices.length} of {services.length} services</div></div>
 
-        <div className="relative min-w-[140px]">
-          <select className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-gray-600 text-white cursor-pointer">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Inactive</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-        </div>
-
-        <div className="relative min-w-[140px]">
-          <select className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-gray-600 text-white cursor-pointer">
-            <option>All Centers</option>
-            <option>Head Office</option>
-            <option>Vellore Center</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-        </div>
-
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-orange-500/30 text-orange-500 hover:bg-orange-500/10 transition-colors">
-          <Filter size={16} />
-          <span>Filter</span>
-        </button>
-
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors">
-          <RefreshCcw size={16} />
-          <span>Reset</span>
-        </button>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-sm">
-                <th className="py-4 px-4 pl-6 w-[50px]">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 rounded border-gray-600 bg-[#0f1115] accent-orange-500 cursor-pointer"
-                    checked={selectedServices.length === mockServices.length && mockServices.length > 0}
-                    onChange={toggleAll}
-                  />
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Service Name</div>
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Service Code</div>
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Category</div>
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Charge (₹)</div>
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Status</div>
-                </th>
-                <th className="py-4 px-4 font-medium cursor-pointer hover:text-white">
-                  <div className="flex items-center gap-1">Sort Order</div>
-                </th>
-                <th className="py-4 px-4 pr-6 font-medium text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockServices.map((service) => {
-                const Icon = service.icon;
-                return (
-                <tr key={service.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                  <td className="py-3 px-4 pl-6">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded border-gray-600 bg-[#0f1115] accent-orange-500 cursor-pointer"
-                      checked={selectedServices.includes(service.id)}
-                      onChange={() => toggleServiceSelection(service.id)}
-                    />
-                  </td>
-                  <td className="py-3 px-4 min-w-[250px]">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${service.iconBg} ${service.iconColor}`}>
-                        <Icon size={20} />
-                      </div>
-                      <div>
-                        <div className="font-medium text-white text-sm">{service.nameEn}</div>
-                        <div className="text-xs text-gray-500">{service.nameTa}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-300">
-                    {service.code}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getCategoryColor(service.category)}`}>
-                      {service.category}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-300">
-                    ₹ {service.charge}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-                      service.status === 'Active' 
-                        ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                        : 'bg-red-500/10 text-red-500 border-red-500/20'
-                    }`}>
-                      {service.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-300">
-                    {service.sortOrder}
-                  </td>
-                  <td className="py-3 px-4 pr-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
-                        <Eye size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )})}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-400">
-            Showing 1 to 8 of 86 services
-          </div>
-          <div className="flex items-center gap-1">
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 disabled:opacity-50">
-              <ChevronLeft size={16} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md bg-orange-500 text-white border border-orange-500">
-              1
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              2
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              3
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 hidden sm:flex">
-              4
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 hidden sm:flex">
-              5
-            </button>
-            <span className="text-gray-500 px-1">...</span>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              11
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800">
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Service Drawer Overlay & Panel (Portaled to body) */}
-      {typeof document !== 'undefined' && createPortal(
-        <>
-          {isAddServiceOpen && (
-            <div 
-              className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm" 
-              onClick={handleCloseDrawer} 
-            />
-          )}
-
-          <div className={`fixed inset-y-0 right-0 w-[420px] bg-[#1a1c23] border-l border-gray-800 shadow-2xl z-[70] transform transition-transform duration-300 flex flex-col ${isAddServiceOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-800">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Add New Service</h2>
-              </div>
-              <button onClick={handleCloseDrawer} className="text-gray-400 hover:text-white transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Drawer Body (Form) */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-              
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Service Name (English) <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Enter service name in English" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Service Name (Tamil) <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Enter service name in Tamil" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Service Code <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Enter unique service code" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Category <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <select defaultValue="" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
-                    <option value="" disabled>Select category</option>
-                    <option value="Certificates">Certificates</option>
-                    <option value="Education">Education</option>
-                    <option value="Utility">Utility</option>
-                    <option value="Ration">Ration</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Service Description <span className="text-red-500">*</span></label>
-                <textarea rows="3" placeholder="Enter service description" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 resize-none"></textarea>
-                <div className="text-right text-xs text-gray-500">0 / 500</div>
-              </div>
-
-              {/* Required Documents Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-300 font-medium">Required Documents</label>
-                  <button className="flex items-center gap-1 text-orange-500 border border-orange-500/50 rounded px-2 py-1 text-xs hover:bg-orange-500/10 transition-colors">
-                    <Plus size={12} />
-                    <span>Add Document</span>
-                  </button>
-                </div>
-                <div className="border border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center bg-[#0f1115]/50">
-                  <FileText className="text-gray-600 mb-2" size={24} />
-                  <p className="text-xs text-gray-500">No documents added yet</p>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Service Charge (₹) <span className="text-red-500">*</span></label>
-                <input type="number" placeholder="Enter service charge" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Estimated Processing Time <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <select defaultValue="" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
-                    <option value="" disabled>Select processing time</option>
-                    <option value="1 Day">1 Day</option>
-                    <option value="3 Days">3 Days</option>
-                    <option value="1 Week">1 Week</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <label className="text-sm text-gray-300 font-medium">Status <span className="text-red-500">*</span></label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" defaultChecked className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
-                    <span className="text-sm text-white">Active</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
-                    <span className="text-sm text-gray-400">Inactive</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm text-gray-300 font-medium">Sort Order <span className="text-red-500">*</span></label>
-                <input type="number" placeholder="Enter sort order" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
-              </div>
-
-            </div>
-
-            {/* Drawer Footer */}
-            <div className="p-6 border-t border-gray-800 flex gap-4 bg-[#1a1c23]">
-              <button onClick={handleCloseDrawer} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
-                Cancel
-              </button>
-              <button className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                <FileText size={18} />
-                <span>Save Service</span>
-              </button>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
-    </div>
-  );
-};
-
-export default ServiceManagement;
+    {selected && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelected(null)}><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-gray-700 bg-[#1a1c23] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="mb-5 flex items-start justify-between border-b border-gray-800 pb-4"><div><p className="text-xs uppercase tracking-wider text-orange-400">{selected.service_code}</p><h2 className="mt-1 text-xl font-semibold text-white">{selected.service_name}</h2><p className="mt-1 text-sm text-gray-400">{selected.category}{selected.subcategory ? ` / ${selected.subcategory}` : ''}</p></div><button onClick={() => setSelected(null)} title="Close details" className="rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white"><X size={19} /></button></div><div className="grid gap-4 sm:grid-cols-2">{[['Description', selected.description], ['Provider / Department', selected.provider_department], ['Processing Time', selected.processing_time], ['Application Type', selected.application_type], ['Availability', selected.service_availability], ['Delivery Method', selected.delivery_method], ['Payment Type', selected.payment_type], ['Government Fee', formatAmount(selected.government_fee)], ['Service Charge', formatAmount(selected.service_charge)], ['GST / Tax', formatAmount(selected.gst_tax)], ['Total Amount', formatAmount(selected.total_amount)], ['Featured', selected.featured_service]].map(([label, value]) => <div key={label} className="rounded-lg border border-gray-800 bg-[#0f1115] p-3"><p className="text-xs text-gray-500">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm text-gray-200">{value || 'Not provided'}</p></div>)}</div><div className="mt-5 flex justify-end"><button onClick={() => navigate(`/admin/service-management/edit/${selected.id}`)} className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"><Pencil size={16} /> Edit service</button></div></div></div>}
+    {isAddOpen && createPortal(<><div className="fixed inset-0 z-[60] bg-black/60" onClick={() => setIsAddOpen(false)} /><aside className="service-drawer-dark fixed inset-y-0 right-0 z-[70] w-full max-w-2xl overflow-y-auto bg-[#1a1c23] shadow-2xl"><AddService embedded onCancel={() => setIsAddOpen(false)} onSaved={loadServices} /></aside></>, document.body)}
+  </div>;
+}

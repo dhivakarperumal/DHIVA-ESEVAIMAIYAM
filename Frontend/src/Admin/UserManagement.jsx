@@ -49,6 +49,8 @@ const UserManagement = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [viewMode, setViewMode] = useState('table');
   const [savingUser, setSavingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null);
   const [userForm, setUserForm] = useState({ username: '', email: '', mobile: '', password: '', confirmPassword: '', role: 'Staff', status: 'Active' });
 
   const loadUsers = async () => {
@@ -68,20 +70,43 @@ const UserManagement = () => {
   const updateUserForm = (field, value) => setUserForm((current) => ({ ...current, [field]: value }));
   const closeAddUser = () => {
     setIsAddUserOpen(false);
+    setEditingUser(null);
     setUserForm({ username: '', email: '', mobile: '', password: '', confirmPassword: '', role: 'Staff', status: 'Active' });
     setShowPassword(false);
     setShowConfirmPassword(false);
+  };
+  const openAddUser = () => {
+    closeAddUser();
+    setIsAddUserOpen(true);
+  };
+  const openEditUser = (user) => {
+    setEditingUser(user);
+    setUserForm({ username: user.username, email: user.email, mobile: user.mobile === '-' ? '' : user.mobile, password: '', confirmPassword: '', role: user.role, status: user.status });
+    setIsAddUserOpen(true);
+  };
+  const deleteUser = async (user) => {
+    if (!window.confirm(`Deactivate ${user.username}?`)) return;
+    try {
+      await api.delete(`/users/${user.id}`);
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      setViewingUser(null);
+      window.alert('User deactivated successfully');
+    } catch (error) {
+      window.alert(error.response?.data?.message || 'Unable to deactivate user');
+    }
   };
   const saveUser = async (event) => {
     event.preventDefault();
     if (userForm.password !== userForm.confirmPassword) return window.alert('Passwords do not match');
     setSavingUser(true);
     try {
-      const response = await api.post('/users', { username: userForm.username, email: userForm.email, mobile: userForm.mobile, password: userForm.password, role: userForm.role, status: userForm.status });
+      const payload = { username: userForm.username, email: userForm.email, mobile: userForm.mobile, role: userForm.role, status: userForm.status };
+      if (userForm.password) payload.password = userForm.password;
+      const response = editingUser ? await api.put(`/users/${editingUser.id}`, payload) : await api.post('/users', { ...payload, password: userForm.password });
       const created = response.data.user;
-      setUsers((current) => [mapUser(created), ...current]);
+      setUsers((current) => editingUser ? current.map((user) => user.id === editingUser.id ? mapUser(created) : user) : [mapUser(created), ...current]);
       closeAddUser();
-      window.alert('User created successfully');
+      window.alert(editingUser ? 'User updated successfully' : 'User created successfully');
     } catch (error) {
       window.alert(error.response?.data?.message || 'Unable to create user');
     } finally {
@@ -131,7 +156,7 @@ const UserManagement = () => {
             <span>Export</span>
           </button>
           <button 
-            onClick={() => setIsAddUserOpen(true)}
+            onClick={openAddUser}
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
           >
             <Plus size={18} />
@@ -353,13 +378,13 @@ const UserManagement = () => {
                   </td>
                   <td className="py-3 px-4 pr-6">
                     <div className="flex items-center justify-center gap-2">
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
+                      <button onClick={() => setViewingUser(user)} className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors" title="View">
                         <Eye size={16} />
                       </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
+                      <button onClick={() => openEditUser(user)} className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors" title="Edit">
                         <Edit2 size={16} />
                       </button>
-                      <button className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
+                      <button onClick={() => deleteUser(user)} className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors" title="Delete">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -425,9 +450,9 @@ const UserManagement = () => {
               <div className="flex justify-between gap-3"><span className="text-gray-500">Joined</span><span className="text-right text-gray-300">{user.joinedDate}</span></div>
             </div>
             <div className="mt-5 flex justify-end gap-2 border-t border-gray-800 pt-4">
-              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white" title="View"><Eye size={16} /></button>
-              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-blue-400" title="Edit"><Edit2 size={16} /></button>
-              <button className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-red-400" title="Delete"><Trash2 size={16} /></button>
+              <button onClick={() => setViewingUser(user)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white" title="View"><Eye size={16} /></button>
+              <button onClick={() => openEditUser(user)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-blue-400" title="Edit"><Edit2 size={16} /></button>
+              <button onClick={() => deleteUser(user)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-red-400" title="Delete"><Trash2 size={16} /></button>
             </div>
           </article>
         ))}
@@ -436,10 +461,25 @@ const UserManagement = () => {
       {/* Add User Drawer Overlay & Panel (Portaled to body) */}
       {typeof document !== 'undefined' && createPortal(
         <>
+          {viewingUser && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setViewingUser(null)} />
+              <div className="relative w-full max-w-md rounded-xl border border-gray-800 bg-[#1a1c23] shadow-2xl">
+                <div className="flex items-start justify-between border-b border-gray-800 p-5">
+                  <div><p className="text-xs text-orange-400">{viewingUser.role}</p><h2 className="mt-1 text-xl font-semibold text-white">{viewingUser.name}</h2><p className="text-sm text-gray-500">@{viewingUser.username}</p></div>
+                  <button onClick={() => setViewingUser(null)} className="text-gray-400 hover:text-white"><X size={20} /></button>
+                </div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2">
+                  {[['Email', viewingUser.email], ['Mobile', viewingUser.mobile], ['Status', viewingUser.status], ['Center', viewingUser.center], ['Joined', `${viewingUser.joinedDate} ${viewingUser.joinedTime}`]].map(([label, value]) => <div key={label} className="rounded-lg bg-[#0f1115] p-3"><p className="text-xs text-gray-500">{label}</p><p className="mt-1 break-words text-sm text-white">{value || '-'}</p></div>)}
+                </div>
+                <div className="flex justify-end gap-3 border-t border-gray-800 p-5"><button onClick={() => { setViewingUser(null); openEditUser(viewingUser); }} className="flex items-center gap-2 rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"><Edit2 size={15} /> Edit</button><button onClick={() => deleteUser(viewingUser)} className="flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20"><Trash2 size={15} /> Delete</button></div>
+              </div>
+            </div>
+          )}
           {isAddUserOpen && (
             <div 
               className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm" 
-              onClick={() => setIsAddUserOpen(false)} 
+              onClick={closeAddUser} 
             />
           )}
 
@@ -447,10 +487,10 @@ const UserManagement = () => {
             {/* Drawer Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-800">
               <div>
-                <h2 className="text-xl font-semibold text-white">Add New User</h2>
-                <p className="text-sm text-gray-400 mt-1">Fill in the details to create a new user.</p>
+                <h2 className="text-xl font-semibold text-white">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                <p className="text-sm text-gray-400 mt-1">{editingUser ? 'Update this user account.' : 'Fill in the details to create a new user.'}</p>
               </div>
-              <button onClick={() => setIsAddUserOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+              <button onClick={closeAddUser} className="text-gray-400 hover:text-white transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -459,8 +499,8 @@ const UserManagement = () => {
             <form onSubmit={saveUser} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
-                  <label className="text-sm text-gray-300 font-medium">Full Name <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Enter full name" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
+                  <label className="text-sm text-gray-300 font-medium">Display Name</label>
+                  <input type="text" placeholder="Uses username" value={editingUser ? editingUser.name : ''} readOnly={Boolean(editingUser)} onChange={() => {}} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 read-only:cursor-not-allowed read-only:opacity-70" />
                 </div>
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm text-gray-300 font-medium">Username <span className="text-red-500">*</span></label>
@@ -502,8 +542,9 @@ const UserManagement = () => {
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Center / Branch <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select defaultValue="" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
+                    <select value={editingUser ? editingUser.center : ''} onChange={() => {}} disabled={Boolean(editingUser)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70">
                     <option value="" disabled>Select center</option>
+                    <option value="-">Not assigned</option>
                     <option value="Head Office">Head Office</option>
                     <option value="Vellore Center">Vellore Center</option>
                   </select>
@@ -514,7 +555,7 @@ const UserManagement = () => {
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Password <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input required minLength={8} type={showPassword ? "text" : "password"} placeholder="Enter password" value={userForm.password} onChange={(e) => updateUserForm('password', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
+                  <input required={!editingUser} minLength={editingUser && !userForm.password ? undefined : 8} type={showPassword ? "text" : "password"} placeholder={editingUser ? "Leave blank to keep current password" : "Enter password"} value={userForm.password} onChange={(e) => updateUserForm('password', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -525,7 +566,7 @@ const UserManagement = () => {
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Confirm Password <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input required minLength={8} type={showConfirmPassword ? "text" : "password"} placeholder="Confirm password" value={userForm.confirmPassword} onChange={(e) => updateUserForm('confirmPassword', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
+                  <input required={!editingUser} minLength={editingUser && !userForm.confirmPassword ? undefined : 8} type={showConfirmPassword ? "text" : "password"} placeholder={editingUser ? "Leave blank to keep current password" : "Confirm password"} value={userForm.confirmPassword} onChange={(e) => updateUserForm('confirmPassword', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
                   <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -555,12 +596,12 @@ const UserManagement = () => {
 
             {/* Drawer Footer */}
             <div className="p-6 border-t border-gray-800 flex gap-4 bg-[#1a1c23]">
-              <button onClick={() => setIsAddUserOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
+              <button type="button" onClick={closeAddUser} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
                 Cancel
               </button>
               <button type="button" onClick={() => saveUser({ preventDefault: () => {} })} disabled={savingUser} className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                 <UserPlus size={18} />
-                <span>{savingUser ? 'Saving...' : 'Save User'}</span>
+                <span>{savingUser ? 'Saving...' : editingUser ? 'Update User' : 'Save User'}</span>
               </button>
             </div>
           </div>

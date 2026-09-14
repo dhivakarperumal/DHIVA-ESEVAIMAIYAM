@@ -12,6 +12,7 @@ import AdminDashboard from './Admin/AdminDashboard.jsx'
 import AdminLayout from './Admin/Adminpanel.jsx'
 import UserManagement from './Admin/UserManagement.jsx'
 import ServiceManagement from './Admin/ServicesMangement/ServiceManagement.jsx'
+import AddService from './Admin/ServicesMangement/AddService.jsx'
 import ServiceCategories from './Admin/ServicesMangement/ServiceCategories.jsx'
 import RequiredDocuments from './Admin/ApplicationMangement/RequiredDocuments.jsx'
 import ServiceCharges from './Admin/ServicesMangement/ServiceCharges.jsx'
@@ -100,7 +101,11 @@ const router = createHashRouter([
           },
           {
             path: 'service-management/add',
-            element: <ServiceManagement />,
+            element: <AddService />,
+          },
+          {
+            path: 'service-management/edit/:id',
+            element: <AddService />,
           },
           {
             path: 'service-management/categories',

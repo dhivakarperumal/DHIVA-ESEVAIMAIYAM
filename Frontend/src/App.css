@@ -1,0 +1,52 @@
+/* Match embedded admin drawers to the established dark dashboard palette. */
+.service-drawer-dark .bg-slate-50,
+.service-drawer-dark .bg-white { background-color: #1a1c23 !important; }
+.service-drawer-dark .border-slate-200,
+.service-drawer-dark .border-slate-300,
+.service-drawer-dark .border-slate-100 { border-color: #374151 !important; }
+.service-drawer-dark .text-slate-950,
+.service-drawer-dark .text-slate-900,
+.service-drawer-dark .text-slate-800,
+.service-drawer-dark .text-slate-700 { color: #f3f4f6 !important; }
+.service-drawer-dark .text-slate-500,
+.service-drawer-dark .text-slate-400 { color: #9ca3af !important; }
+.service-drawer-dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12) !important; }
+.service-drawer-dark .text-orange-900,
+.service-drawer-dark .text-orange-700,
+.service-drawer-dark .text-orange-600 { color: #fb923c !important; }
+.service-drawer-dark .border-orange-200 { border-color: rgba(249, 115, 22, 0.4) !important; }
+.service-drawer-dark input,
+.service-drawer-dark select,
+.service-drawer-dark textarea { background-color: #0f1115 !important; border-color: #374151 !important; color: #f9fafb !important; }
+.service-drawer-dark input::placeholder,
+.service-drawer-dark textarea::placeholder { color: #6b7280 !important; }
+
+/* Keep the service form readable at every width; spanning fields must not create implicit columns. */
+.service-form .sm\:col-span-2 { grid-column: span 1 / span 1 !important; }
+.service-form .sm\:grid-cols-\[1fr_130px_auto\] { grid-template-columns: minmax(0, 1fr) !important; }
+
+/* Keep the long embedded form usable while its drawer body scrolls. */
+.service-drawer-dark > div > div:first-child {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	margin: -1rem -1rem 1.75rem;
+	padding: 1rem;
+	border-bottom: 1px solid #374151;
+	background: #1a1c23;
+}
+.service-drawer-dark > div > button {
+	position: fixed;
+	top: 1rem;
+	right: 1rem;
+	z-index: 30;
+}
+.service-drawer-dark form > div:last-child {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	margin: 1.25rem -1rem -1rem;
+	padding: 1rem;
+	border-top: 1px solid #374151;
+	background: #1a1c23;
+}
