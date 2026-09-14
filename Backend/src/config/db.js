@@ -144,6 +144,62 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS equipment (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        equipment_name VARCHAR(255) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        asset_id VARCHAR(100) NOT NULL UNIQUE,
+        brand VARCHAR(100) DEFAULT NULL,
+        model_number VARCHAR(100) DEFAULT NULL,
+        serial_number VARCHAR(100) DEFAULT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        purchase_date DATE DEFAULT NULL,
+        purchase_price DECIMAL(12,2) DEFAULT NULL,
+        supplier_name VARCHAR(255) DEFAULT NULL,
+        invoice_number VARCHAR(100) DEFAULT NULL,
+        invoice_date DATE DEFAULT NULL,
+        warranty_start_date DATE DEFAULT NULL,
+        warranty_end_date DATE DEFAULT NULL,
+        amc_start_date DATE DEFAULT NULL,
+        amc_end_date DATE DEFAULT NULL,
+        service_provider VARCHAR(255) DEFAULT NULL,
+        service_contact_number VARCHAR(30) DEFAULT NULL,
+        current_location VARCHAR(255) DEFAULT NULL,
+        assigned_staff VARCHAR(255) DEFAULT NULL,
+        department VARCHAR(255) DEFAULT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'Working',
+        condition_name VARCHAR(50) NOT NULL DEFAULT 'Good',
+        last_maintenance_date DATE DEFAULT NULL,
+        next_maintenance_date DATE DEFAULT NULL,
+        maintenance_remarks TEXT DEFAULT NULL,
+        equipment_photo VARCHAR(255) DEFAULT NULL,
+        purchase_invoice VARCHAR(255) DEFAULT NULL,
+        warranty_document VARCHAR(255) DEFAULT NULL,
+        remarks TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS equipment_maintenance (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        equipment_id INT NOT NULL,
+        maintenance_date DATE NOT NULL,
+        issue VARCHAR(255) NOT NULL,
+        service_provider VARCHAR(255) DEFAULT NULL,
+        service_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+        technician VARCHAR(255) DEFAULT NULL,
+        resolution TEXT DEFAULT NULL,
+        next_service_date DATE DEFAULT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'Completed',
+        remarks TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     connection.release();
     console.log("Database connected:", `${dbConfig.user}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
     return pool;

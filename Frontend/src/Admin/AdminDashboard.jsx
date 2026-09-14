@@ -30,7 +30,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen space-y-6 p-4 sm:p-2 pb-6 text-white">
+    <div className="min-h-screen space-y-4 sm:space-y-6 py-4 sm:p-6 text-white">
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Vanakkam, <span className="text-[#f8740e]">{name}! 👋</span></h1>
         <p className="mt-1 text-sm text-white/60 sm:text-base">Welcome to E-Sevai Maiyam Admin Dashboard</p>
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Application Overview</h2>
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-[#1a1b23] p-4 sm:p-5 lg:col-span-2 xl:col-span-1 min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-sm">Expense Overview</h2>

@@ -1,140 +1,38 @@
-import { useMemo, useState } from 'react';
-import { MonitorSmartphone, Plus, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, CalendarDays, ChevronRight, Download, Edit2, Eye, Filter, MapPin, MonitorSmartphone, Package, Plus, RefreshCcw, Search, ShieldCheck, Trash2, Wrench, X } from 'lucide-react';
+import api from '../api';
 
-const initialEquipment = [
-  { id: 1, name: 'Desktop Computer', assetId: 'EQ-001', category: 'Computer', center: 'Head Office', status: 'Working' },
-  { id: 2, name: 'Laser Printer', assetId: 'EQ-002', category: 'Printer', center: 'Vellore Center', status: 'Working' },
-  { id: 3, name: 'Biometric Scanner', assetId: 'EQ-003', category: 'Scanner', center: 'Ambur Center', status: 'Maintenance' },
-  { id: 4, name: 'UPS Backup', assetId: 'EQ-004', category: 'Power', center: 'Tirupathur Center', status: 'Working' },
-];
+const API = '/equipment';
+const statuses = ['Working', 'Under Maintenance', 'Damaged', 'Not Working', 'Retired'];
+const conditions = ['New', 'Good', 'Fair', 'Poor'];
+const categories = ['Computer', 'Printer', 'Scanner', 'Biometric Device', 'Power Backup', 'Furniture', 'Other'];
+const emptyForm = { equipment_name: '', category: '', asset_id: '', brand: '', model_number: '', serial_number: '', quantity: 1, purchase_date: '', purchase_price: '', supplier_name: '', invoice_number: '', invoice_date: '', warranty_start_date: '', warranty_end_date: '', amc_start_date: '', amc_end_date: '', service_provider: '', service_contact_number: '', current_location: '', assigned_staff: '', department: '', status: 'Working', condition_name: 'Good', last_maintenance_date: '', next_maintenance_date: '', maintenance_remarks: '', remarks: '' };
+const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none transition focus:border-blue-500 placeholder:text-slate-600';
+const labelClass = 'text-xs font-medium uppercase tracking-wide text-slate-400';
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+const statusStyle = { Working: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300', 'Under Maintenance': 'border-amber-400/20 bg-amber-400/10 text-amber-300', Damaged: 'border-red-400/20 bg-red-400/10 text-red-300', 'Not Working': 'border-orange-400/20 bg-orange-400/10 text-orange-300', Retired: 'border-slate-500/30 bg-slate-500/10 text-slate-400' };
 
-const statusStyles = {
-  Working: 'bg-green-500/15 text-green-400 border-green-500/20',
-  Maintenance: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-  Retired: 'bg-white/10 text-white/50 border-white/10',
-};
+function Section({ title, children }) { return <div className="space-y-4"><h3 className="border-b border-slate-800 pb-2 text-sm font-semibold text-blue-300">{title}</h3><div className="grid gap-4 sm:grid-cols-2">{children}</div></div>; }
+function Field({ label, name, form, setForm, required = false, type = 'text', options, span = false }) { return <label className={`${span ? 'sm:col-span-2' : ''} space-y-1.5`}><span className={labelClass}>{label}{required && <b className="ml-1 text-red-400">*</b>}</span>{options ? <select required={required} value={form[name]} onChange={(e) => setForm((current) => ({ ...current, [name]: e.target.value }))} className={inputClass}><option value="">Select {label}</option>{options.map((option) => <option key={option}>{option}</option>)}</select> : type === 'textarea' ? <textarea rows={3} value={form[name]} onChange={(e) => setForm((current) => ({ ...current, [name]: e.target.value }))} className={`${inputClass} resize-none`} /> : <input required={required} type={type} value={form[name]} onChange={(e) => setForm((current) => ({ ...current, [name]: e.target.value }))} className={inputClass} />}</label>; }
 
 const EquipmentManagement = () => {
-  const [equipment, setEquipment] = useState(initialEquipment);
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', assetId: '', category: '', center: '', status: 'Working' });
+  const [equipment, setEquipment] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [query, setQuery] = useState(''); const [statusFilter, setStatusFilter] = useState('All'); const [categoryFilter, setCategoryFilter] = useState('All'); const [drawerOpen, setDrawerOpen] = useState(false); const [form, setForm] = useState(emptyForm); const [editingId, setEditingId] = useState(null); const [selected, setSelected] = useState(null);
+  const loadEquipment = async () => { try { setLoading(true); const response = await api.get(API); setEquipment(response.data.data || []); } catch (error) { window.alert(error.response?.data?.message || 'Unable to load equipment'); } finally { setLoading(false); } };
+  useEffect(() => { loadEquipment(); }, []);
+  const filtered = useMemo(() => equipment.filter((item) => { const haystack = [item.equipment_name, item.asset_id, item.category, item.brand, item.current_location, item.assigned_staff].join(' ').toLowerCase(); return haystack.includes(query.toLowerCase()) && (statusFilter === 'All' || item.status === statusFilter) && (categoryFilter === 'All' || item.category === categoryFilter); }), [equipment, query, statusFilter, categoryFilter]);
+  const metrics = [{ label: 'Total Equipment', value: equipment.length, icon: Package, color: 'text-blue-300' }, { label: 'Working', value: equipment.filter((item) => item.status === 'Working').length, icon: ShieldCheck, color: 'text-emerald-300' }, { label: 'Under Maintenance', value: equipment.filter((item) => item.status === 'Under Maintenance').length, icon: Wrench, color: 'text-amber-300' }, { label: 'Damaged', value: equipment.filter((item) => item.status === 'Damaged' || item.status === 'Not Working').length, icon: AlertTriangle, color: 'text-red-300' }, { label: 'Warranty Expiring', value: equipment.filter((item) => item.warranty_end_date && new Date(item.warranty_end_date) > new Date() && new Date(item.warranty_end_date) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 90)).length, icon: CalendarDays, color: 'text-violet-300' }];
+  const openAdd = () => { setForm(emptyForm); setEditingId(null); setDrawerOpen(true); }; const openEdit = (item) => { setForm({ ...emptyForm, ...item }); setEditingId(item.id); setSelected(null); setDrawerOpen(true); }; const closeDrawer = () => { setDrawerOpen(false); setEditingId(null); setForm(emptyForm); };
+  const saveEquipment = async (event) => { event.preventDefault(); const addAnother = event.nativeEvent.submitter?.name === 'addAnother'; setSaving(true); try { const data = new FormData(); Object.entries(form).forEach(([key, value]) => data.append(key, value ?? '')); ['equipmentPhoto', 'purchaseInvoice', 'warrantyDocument'].forEach((name) => { const file = event.currentTarget.elements[name]?.files?.[0]; if (file) data.append(name, file); }); if (editingId) await api.put(`${API}/${editingId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }); else await api.post(API, data, { headers: { 'Content-Type': 'multipart/form-data' } }); await loadEquipment(); window.alert(editingId ? 'Equipment updated successfully' : 'Equipment saved successfully'); if (addAnother) { setForm(emptyForm); setEditingId(null); } else closeDrawer(); } catch (error) { window.alert(error.response?.data?.message || 'Unable to save equipment'); } finally { setSaving(false); } };
+  const deleteEquipment = async (item) => { if (!window.confirm(`Delete ${item.equipment_name}? This cannot be undone.`)) return; try { await api.delete(`${API}/${item.id}`); setSelected(null); loadEquipment(); } catch (error) { window.alert(error.response?.data?.message || 'Unable to delete equipment'); } };
+  const exportCsv = () => { const rows = filtered.map((item) => [item.equipment_name, item.category, item.asset_id, item.brand, item.model_number, item.quantity, item.status, item.current_location]); const csv = [['Equipment', 'Category', 'Asset ID', 'Brand', 'Model', 'Quantity', 'Status', 'Location'], ...rows].map((row) => row.map((cell) => `"${String(cell || '').replaceAll('"', '""')}"`).join(',')).join('\n'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = 'equipment-register.csv'; link.click(); URL.revokeObjectURL(link.href); };
 
-  const filteredEquipment = useMemo(() => equipment.filter((item) => {
-    const matchesQuery = [item.name, item.assetId, item.category, item.center]
-      .some((value) => value.toLowerCase().includes(query.toLowerCase()));
-    return matchesQuery && (statusFilter === 'All' || item.status === statusFilter);
-  }), [equipment, query, statusFilter]);
-
-  const submitEquipment = (event) => {
-    event.preventDefault();
-    setEquipment((current) => [...current, { ...form, id: Date.now() }]);
-    setForm({ name: '', assetId: '', category: '', center: '', status: 'Working' });
-    setIsFormOpen(false);
-  };
-
-  const workingCount = equipment.filter((item) => item.status === 'Working').length;
-  const maintenanceCount = equipment.filter((item) => item.status === 'Maintenance').length;
-
-  return (
-    <section className="flex flex-col gap-6 p-2 text-white sm:p-4">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold">Equipment Management</h1>
-          <p className="mt-1 text-sm text-white/50">Track equipment assigned to each E-Sevai center.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
-        >
-          <Plus size={17} /> Add Equipment
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {[
-          ['Total Equipment', equipment.length, 'text-white'],
-          ['Working', workingCount, 'text-green-400'],
-          ['Needs Maintenance', maintenanceCount, 'text-orange-400'],
-        ].map(([label, value, color]) => (
-          <div key={label} className="rounded-xl border border-white/10 bg-[#1a1b23] p-4">
-            <p className="text-xs uppercase tracking-wide text-white/45">{label}</p>
-            <p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1b23]">
-        <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 sm:max-w-md">
-            <Search size={16} className="shrink-0 text-white/40" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search equipment..."
-              className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white outline-none"
-          >
-            <option>All</option>
-            <option>Working</option>
-            <option>Maintenance</option>
-            <option>Retired</option>
-          </select>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-white/5 text-xs uppercase tracking-wide text-white/45">
-              <tr>
-                <th className="px-5 py-3">Equipment</th>
-                <th className="px-5 py-3">Asset ID</th>
-                <th className="px-5 py-3">Category</th>
-                <th className="px-5 py-3">Center</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredEquipment.map((item) => (
-                <tr key={item.id} className="text-white/75 transition hover:bg-white/[0.03]">
-                  <td className="px-5 py-4"><div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/15 text-orange-400"><MonitorSmartphone size={16} /></span><span className="font-medium text-white">{item.name}</span></div></td>
-                  <td className="px-5 py-4">{item.assetId}</td>
-                  <td className="px-5 py-4">{item.category}</td>
-                  <td className="px-5 py-4">{item.center}</td>
-                  <td className="px-5 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${statusStyles[item.status]}`}>{item.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredEquipment.length === 0 && <p className="px-5 py-10 text-center text-sm text-white/45">No equipment matches the selected filters.</p>}
-        </div>
-      </div>
-
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <form onSubmit={submitEquipment} className="w-full max-w-lg rounded-xl border border-white/10 bg-[#1a1b23] p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-semibold">Add Equipment</h2><button type="button" onClick={() => setIsFormOpen(false)} className="text-white/50 hover:text-white" aria-label="Close"><X size={18} /></button></div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                ['name', 'Equipment name'],
-                ['assetId', 'Asset ID'],
-                ['category', 'Category'],
-                ['center', 'Center'],
-              ].map(([key, label]) => <label key={key} className="text-sm text-white/60">{label}<input required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-orange-500" /></label>)}
-              <label className="text-sm text-white/60">Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 py-2 text-white outline-none"><option>Working</option><option>Maintenance</option><option>Retired</option></select></label>
-            </div>
-            <button type="submit" className="mt-6 w-full rounded-md bg-orange-500 py-2.5 text-sm font-medium text-white hover:bg-orange-600">Save Equipment</button>
-          </form>
-        </div>
-      )}
-    </section>
-  );
+  return <section className="space-y-6 p-2 text-white sm:p-4"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start"><div><div className="mb-3 flex items-center gap-2 text-xs text-slate-500"><span>Dashboard</span><ChevronRight size={13} /><span>Administration</span><ChevronRight size={13} /><span className="text-orange-400">Equipment Management</span></div><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Equipment Management</h1><p className="mt-1 text-sm text-slate-400">Manage, track and maintain all E-Sevai Maiyam equipment</p></div><button onClick={openAdd} className="flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium shadow-lg shadow-orange-500/20 transition hover:bg-orange-600"><Plus size={17} /> Add Equipment</button></div>
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{metrics.map(({ label, value, icon: Icon, color }) => <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"><div className="flex items-center justify-between"><p className="text-xs text-slate-400">{label}</p><Icon size={17} className={color} /></div><p className={`mt-3 text-2xl font-semibold ${color}`}>{value}</p></div>)}</div>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"><div className="flex flex-col gap-3 lg:flex-row"><div className="relative flex-1"><Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, asset ID, brand, staff or location..." className={`${inputClass} pl-10`} /></div><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`${inputClass} lg:w-48`}><option>All</option>{statuses.map((status) => <option key={status}>{status}</option>)}</select><select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${inputClass} lg:w-44`}><option>All</option>{categories.map((category) => <option key={category}>{category}</option>)}</select><button onClick={() => { setQuery(''); setStatusFilter('All'); setCategoryFilter('All'); }} className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800"><Filter size={16} /> Clear</button><button onClick={exportCsv} className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800"><Download size={16} /> Export</button></div></div>
+    <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70"><div className="overflow-x-auto"><table className="w-full min-w-[1420px] text-left text-sm"><thead className="border-b border-slate-800 bg-slate-950/50 text-xs uppercase tracking-wide text-slate-500"><tr>{['Equipment', 'Category', 'Asset ID', 'Brand / Model', 'Serial Number', 'Qty', 'Purchase Date', 'Warranty End', 'Assigned Staff', 'Location', 'Condition', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-4 py-3 font-medium">{heading}</th>)}</tr></thead><tbody className="divide-y divide-slate-800/70">{loading ? <tr><td colSpan="13" className="py-16 text-center text-slate-500"><RefreshCcw className="mr-2 inline animate-spin" size={18} />Loading equipment...</td></tr> : filtered.map((item) => <tr key={item.id} className="text-slate-300 transition hover:bg-blue-500/[0.04]"><td className="px-4 py-3"><button onClick={() => setSelected(item)} className="flex items-center gap-3 text-left"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300"><MonitorSmartphone size={17} /></span><span><b className="block text-white">{item.equipment_name}</b><small className="text-slate-500">{item.department || 'E-Sevai Centre'}</small></span></button></td><td className="px-4 py-3">{item.category}</td><td className="px-4 py-3 font-mono text-xs text-blue-300">{item.asset_id}</td><td className="px-4 py-3">{[item.brand, item.model_number].filter(Boolean).join(' / ') || '-'}</td><td className="px-4 py-3 font-mono text-xs">{item.serial_number || '-'}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3 whitespace-nowrap">{formatDate(item.purchase_date)}</td><td className="px-4 py-3 whitespace-nowrap">{formatDate(item.warranty_end_date)}</td><td className="px-4 py-3">{item.assigned_staff || '-'}</td><td className="px-4 py-3"><span className="flex items-center gap-1"><MapPin size={13} className="text-slate-500" />{item.current_location || '-'}</span></td><td className="px-4 py-3">{item.condition_name || '-'}</td><td className="px-4 py-3"><span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs ${statusStyle[item.status] || statusStyle.Retired}`}>{item.status}</span></td><td className="px-4 py-3"><div className="flex gap-1"><button title="View details" onClick={() => setSelected(item)} className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"><Eye size={15} /></button><button title="Edit equipment" onClick={() => openEdit(item)} className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-blue-300"><Edit2 size={15} /></button><button title="Delete equipment" onClick={() => deleteEquipment(item)} className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-red-300"><Trash2 size={15} /></button></div></td></tr>)}{!loading && !filtered.length && <tr><td colSpan="13" className="py-16 text-center"><Package className="mx-auto mb-3 text-slate-600" size={30} /><p className="text-slate-400">No equipment matches these filters.</p><button onClick={openAdd} className="mt-2 text-sm text-blue-300 hover:underline">Add your first equipment item</button></td></tr>}</tbody></table></div><div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-500">Showing {filtered.length} of {equipment.length} equipment items</div></div>
+    {typeof document !== 'undefined' && createPortal(<>{drawerOpen && <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={closeDrawer} />}<div className={`fixed inset-y-0 right-0 z-[70] flex w-full max-w-2xl transform flex-col border-l border-slate-800 bg-slate-900 shadow-2xl transition-transform duration-300 ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}><div className="flex items-center justify-between border-b border-slate-800 p-5"><div><h2 className="text-lg font-semibold">{editingId ? 'Edit Equipment' : 'Add Equipment'}</h2><p className="mt-1 text-xs text-slate-500">Register an asset and its service details</p></div><button onClick={closeDrawer} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"><X size={20} /></button></div><form onSubmit={saveEquipment} className="flex-1 space-y-7 overflow-y-auto p-5"><Section title="Equipment Details"><Field label="Equipment Name" name="equipment_name" form={form} setForm={setForm} required /><Field label="Equipment Category" name="category" form={form} setForm={setForm} required options={categories} /><Field label="Equipment Code / Asset ID" name="asset_id" form={form} setForm={setForm} required /><Field label="Brand" name="brand" form={form} setForm={setForm} /><Field label="Model Number" name="model_number" form={form} setForm={setForm} /><Field label="Serial Number" name="serial_number" form={form} setForm={setForm} /><Field label="Quantity" name="quantity" form={form} setForm={setForm} required type="number" /></Section><Section title="Purchase Details"><Field label="Purchase Date" name="purchase_date" form={form} setForm={setForm} type="date" /><Field label="Purchase Price" name="purchase_price" form={form} setForm={setForm} type="number" /><Field label="Supplier Name" name="supplier_name" form={form} setForm={setForm} /><Field label="Invoice Number" name="invoice_number" form={form} setForm={setForm} /><Field label="Invoice Date" name="invoice_date" form={form} setForm={setForm} type="date" /></Section><Section title="Warranty & AMC"><Field label="Warranty Start Date" name="warranty_start_date" form={form} setForm={setForm} type="date" /><Field label="Warranty End Date" name="warranty_end_date" form={form} setForm={setForm} type="date" /><Field label="AMC Start Date" name="amc_start_date" form={form} setForm={setForm} type="date" /><Field label="AMC End Date" name="amc_end_date" form={form} setForm={setForm} type="date" /><Field label="Service Provider" name="service_provider" form={form} setForm={setForm} /><Field label="Service Contact Number" name="service_contact_number" form={form} setForm={setForm} /></Section><Section title="Assignment"><Field label="Current Location" name="current_location" form={form} setForm={setForm} /><Field label="Assigned Staff" name="assigned_staff" form={form} setForm={setForm} /><Field label="Department / Centre" name="department" form={form} setForm={setForm} /></Section><Section title="Maintenance"><Field label="Status" name="status" form={form} setForm={setForm} options={statuses} /><Field label="Condition" name="condition_name" form={form} setForm={setForm} options={conditions} /><Field label="Last Maintenance Date" name="last_maintenance_date" form={form} setForm={setForm} type="date" /><Field label="Next Maintenance Date" name="next_maintenance_date" form={form} setForm={setForm} type="date" /><Field label="Maintenance Remarks" name="maintenance_remarks" form={form} setForm={setForm} type="textarea" span /></Section><Section title="Documents"><label className="space-y-1.5"><span className={labelClass}>Upload Equipment Photo</span><input name="equipmentPhoto" type="file" accept="image/*" className={inputClass} /></label><label className="space-y-1.5"><span className={labelClass}>Upload Purchase Invoice</span><input name="purchaseInvoice" type="file" accept="image/*,.pdf" className={inputClass} /></label><label className="space-y-1.5"><span className={labelClass}>Upload Warranty Document</span><input name="warrantyDocument" type="file" accept="image/*,.pdf" className={inputClass} /></label></Section><Section title="Other"><Field label="Remarks" name="remarks" form={form} setForm={setForm} type="textarea" span /></Section><div className="flex flex-col gap-3 border-t border-slate-800 pt-5 sm:flex-row"><button type="button" onClick={closeDrawer} className="order-3 flex-1 rounded-lg border border-slate-700 py-2.5 text-sm text-slate-300 hover:bg-slate-800 sm:order-1">Cancel</button><button type="submit" name="addAnother" className="order-2 flex-1 rounded-lg border border-orange-500/40 py-2.5 text-sm text-orange-300 hover:bg-orange-500/10">Save & Add Another</button><button type="submit" disabled={saving} className="order-1 flex-1 rounded-lg bg-orange-500 py-2.5 text-sm font-medium hover:bg-orange-600 disabled:opacity-50 sm:order-3">{saving ? 'Saving...' : editingId ? 'Update Equipment' : 'Save Equipment'}</button></div></form></div></>, document.body)}
+    {selected && <div className="fixed inset-0 z-[80] flex items-center justify-center p-4"><div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelected(null)} /><div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl"><div className="flex items-start justify-between border-b border-slate-800 p-5"><div><p className="font-mono text-xs text-blue-300">{selected.asset_id}</p><h2 className="mt-1 text-xl font-semibold">{selected.equipment_name}</h2><p className="mt-1 text-sm text-slate-400">{selected.category} {selected.brand ? `· ${selected.brand}` : ''}</p></div><button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white"><X /></button></div><div className="grid gap-4 p-5 sm:grid-cols-2">{[['Status', selected.status], ['Condition', selected.condition_name], ['Quantity', selected.quantity], ['Serial Number', selected.serial_number], ['Purchase Date', formatDate(selected.purchase_date)], ['Warranty End', formatDate(selected.warranty_end_date)], ['Assigned Staff', selected.assigned_staff], ['Location', selected.current_location], ['Supplier', selected.supplier_name], ['Model Number', selected.model_number]].map(([label, value]) => <div key={label} className="rounded-lg bg-slate-950/60 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm text-white">{value || '-'}</p></div>)}<div className="sm:col-span-2 rounded-lg bg-slate-950/60 p-3"><p className="mb-2 text-xs text-slate-500">Maintenance & Remarks</p><p className="text-sm text-slate-300">{selected.maintenance_remarks || selected.remarks || 'No remarks added.'}</p></div></div><div className="flex flex-wrap justify-end gap-2 border-t border-slate-800 p-5"><button onClick={() => openEdit(selected)} className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"><Edit2 size={15} /> Edit Equipment</button><button onClick={() => deleteEquipment(selected)} className="flex items-center gap-2 rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10"><Trash2 size={15} /> Delete Equipment</button></div></div></div>}</section>;
 };
 
 export default EquipmentManagement;
