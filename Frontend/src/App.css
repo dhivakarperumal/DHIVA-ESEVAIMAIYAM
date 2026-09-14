@@ -23,7 +23,6 @@
 
 /* Keep the service form readable at every width; spanning fields must not create implicit columns. */
 .service-form .sm\:col-span-2 { grid-column: span 1 / span 1 !important; }
-.service-form .sm\:grid-cols-\[1fr_130px_auto\] { grid-template-columns: minmax(0, 1fr) !important; }
 
 /* Keep the long embedded form usable while its drawer body scrolls. */
 .service-drawer-dark .service-drawer-header {

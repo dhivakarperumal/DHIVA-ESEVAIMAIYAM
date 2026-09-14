@@ -1,8 +1,10 @@
 const { getDB } = require('../config/db');
 
 const parseJson = (value, fallback) => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return value;
   try {
-    return value ? JSON.parse(value) : fallback;
+    return value ? JSON.parse(String(value)) : fallback;
   } catch (error) {
     return fallback;
   }
@@ -67,6 +69,8 @@ exports.createService = async (req, res) => {
     }
 
     const db = getDB();
+    const uploadedImage = req.file ? `/uploads/services/${req.file.filename}` : serviceImage || null;
+    const parsedDocuments = typeof requiredDocuments === 'string' ? parseJson(requiredDocuments, []) : (requiredDocuments || []);
     const [existing] = await db.execute('SELECT id FROM services WHERE service_code = ?', [serviceCode.trim()]);
     if (existing.length) {
       return res.status(409).json({ success: false, message: 'Service code already exists' });
@@ -83,9 +87,9 @@ exports.createService = async (req, res) => {
       serviceName.trim(), serviceCode.trim().toUpperCase(), category.trim(), subcategory || null, description || null,
       providerDepartment || null, portalUrl || null, Number(governmentFee) || 0, Number(serviceCharge) || 0,
       Number(gstTax) || 0, (Number(governmentFee) || 0) + (Number(serviceCharge) || 0) + (Number(gstTax) || 0),
-      paymentType || 'Cash', JSON.stringify(requiredDocuments || []), documentInstructions || null,
+      paymentType || 'Cash', JSON.stringify(parsedDocuments), documentInstructions || null,
       processingTime || null, applicationType || 'Online', serviceAvailability || 'All Days', priorityService || 'No',
-      deliveryMethod || 'Online', status || 'Active', featuredService || 'No', serviceImage || null,
+      deliveryMethod || 'Online', status || 'Active', featuredService || 'No', uploadedImage,
       termsConditions || null, additionalNotes || null,
     ]);
 
@@ -113,18 +117,20 @@ exports.updateService = async (req, res) => {
     }
 
     const db = getDB();
-    const [existing] = await db.execute('SELECT id FROM services WHERE id = ?', [req.params.id]);
+    const [existing] = await db.execute('SELECT id, service_image FROM services WHERE id = ?', [req.params.id]);
     if (!existing.length) return res.status(404).json({ success: false, message: 'Service not found' });
     const [duplicate] = await db.execute('SELECT id FROM services WHERE service_code = ? AND id <> ?', [serviceCode.trim().toUpperCase(), req.params.id]);
     if (duplicate.length) return res.status(409).json({ success: false, message: 'Service code already exists' });
 
+    const parsedDocuments = typeof requiredDocuments === 'string' ? parseJson(requiredDocuments, []) : (requiredDocuments || []);
+    const imagePath = req.file ? `/uploads/services/${req.file.filename}` : (existing[0].service_image || null);
     const values = [
       serviceName.trim(), serviceCode.trim().toUpperCase(), category.trim(), subcategory || null, description || null,
       providerDepartment || null, portalUrl || null, Number(governmentFee) || 0, Number(serviceCharge) || 0,
       Number(gstTax) || 0, (Number(governmentFee) || 0) + (Number(serviceCharge) || 0) + (Number(gstTax) || 0),
-      paymentType || 'Cash', JSON.stringify(requiredDocuments || []), documentInstructions || null, processingTime || null,
+      paymentType || 'Cash', JSON.stringify(parsedDocuments), documentInstructions || null, processingTime || null,
       applicationType || 'Online', serviceAvailability || 'All Days', priorityService || 'No', deliveryMethod || 'Online',
-      status || 'Active', featuredService || 'No', serviceImage || null, termsConditions || null, additionalNotes || null,
+      status || 'Active', featuredService || 'No', imagePath, termsConditions || null, additionalNotes || null,
       req.params.id,
     ];
     await db.execute(`UPDATE services SET service_name = ?, service_code = ?, category = ?, subcategory = ?, description = ?,

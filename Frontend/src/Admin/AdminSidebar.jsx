@@ -42,7 +42,7 @@ const navItems = [
     icon: ClipboardList,
     children: [
       { path: "/admin/service-management/all", label: "All Services" },
-      { path: "/admin/service-management/add", label: "Add New Service" },
+      
       { path: "/admin/service-management/categories", label: "Service Categories" },
       { path: "/admin/service-management/documents", label: "Required Documents" },
       { path: "/admin/service-management/charges", label: "Service Charges" },

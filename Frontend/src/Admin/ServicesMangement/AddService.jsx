@@ -14,6 +14,19 @@ const initialForm = {
 
 const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100';
 
+const normalizeDocuments = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      return normalizeDocuments(JSON.parse(value));
+    } catch {
+      return value.trim() ? [{ name: value.trim(), requirement: 'Mandatory' }] : [];
+    }
+  }
+  if (value && typeof value === 'object') return value.name ? [value] : [];
+  return [];
+};
+
 function Section({ icon: Icon, title, description, children }) {
   return <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
     <div className="mb-5 flex items-start gap-3 border-b border-slate-100 pb-4">
@@ -34,14 +47,16 @@ function Select({ value, onChange, children, name }) {
 
 const money = (value) => Number.parseFloat(value) || 0;
 
-export default function AddService({ embedded = false, onCancel, onSaved }) {
+export default function AddService({ embedded = false, onCancel, onSaved, serviceId }) {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = serviceId || routeId;
   const isEditing = Boolean(id);
   const fieldGridClass = 'grid grid-cols-1 gap-4';
   const fileRef = useRef(null);
   const [form, setForm] = useState(initialForm);
   const [documents, setDocuments] = useState([]);
+  const [imageFile, setImageFile] = useState(null);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [codeLoading, setCodeLoading] = useState(!id);
@@ -91,7 +106,7 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
       const service = data.data;
       const fields = Object.keys(initialForm).reduce((values, key) => ({ ...values, [key]: service[key] ?? initialForm[key] }), {});
       setForm(fields);
-      setDocuments(service.required_documents || []);
+      setDocuments(normalizeDocuments(service.required_documents));
     }).catch(() => toast.error('Unable to load service details.'));
     return () => { active = false; };
   }, [id]);
@@ -111,20 +126,23 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
   const handleImage = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setForm((current) => ({ ...current, service_image: reader.result }));
-    reader.readAsDataURL(file);
+    setImageFile(file);
   };
 
   const save = async (addAnother = false) => {
     if (!validate()) { toast.error('Please complete the required fields.'); return; }
     setSaving(true);
     try {
-      const payload = { ...form, service_code: form.service_code.toUpperCase(), required_documents: documents };
+      const payload = new FormData();
+      Object.entries({ ...form, service_code: form.service_code.toUpperCase() }).forEach(([key, value]) => {
+        if (key !== 'service_image') payload.append(key, value ?? '');
+      });
+      payload.append('required_documents', JSON.stringify(documents));
+      if (imageFile) payload.append('service_image', imageFile);
       if (isEditing) await api.put(`/services/${id}`, payload);
       else await api.post('/services', payload);
       toast.success(isEditing ? 'Service updated successfully.' : 'Service added successfully.');
-      if (addAnother) { setForm(initialForm); setDocuments([]); setErrors({}); }
+      if (addAnother) { setForm(initialForm); setDocuments([]); setImageFile(null); setErrors({}); }
       else if (onSaved) { onSaved(); onCancel?.(); }
       else navigate('/admin/service-management/all');
     } catch (error) {
@@ -168,7 +186,7 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
           <div className="space-y-4"><Field label="Document Instructions"><textarea name="document_instructions" value={form.document_instructions} onChange={update} rows="3" className={`${inputClass} resize-y`} placeholder="Add guidance for collecting documents..." /></Field>
             <div className="flex items-center justify-between"><div><p className="text-sm font-medium text-slate-700">Required Documents</p><p className="text-xs text-slate-500">{documents.length} document{documents.length === 1 ? '' : 's'} required</p></div><button type="button" onClick={addDocument} className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-50"><Plus size={15} /> Add document</button></div>
             {documents.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">No documents added yet.</div>}
-            {documents.map((document, index) => <div key={`${index}-${document.name}`} className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_130px_auto]"><input value={document.name} onChange={(event) => updateDocument(index, 'name', event.target.value)} className={inputClass} placeholder="Document name" /><Select value={document.requirement} onChange={(event) => updateDocument(index, 'requirement', event.target.value)}><option>Mandatory</option><option>Optional</option></Select><button type="button" onClick={() => removeDocument(index)} title="Remove document" className="flex h-10 items-center justify-center rounded-lg border border-red-200 px-3 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button></div>)}
+            {documents.map((document, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_130px_auto] items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3"><input value={document.name} onChange={(event) => updateDocument(index, 'name', event.target.value)} className={inputClass} placeholder="Document name" /><Select value={document.requirement} onChange={(event) => updateDocument(index, 'requirement', event.target.value)}><option>Mandatory</option><option>Optional</option></Select><button type="button" onClick={() => removeDocument(index)} title="Remove document" className="flex h-10 items-center justify-center rounded-lg border border-red-200 px-3 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button></div>)}
           </div>
         </Section>
 
@@ -177,7 +195,7 @@ export default function AddService({ embedded = false, onCancel, onSaved }) {
         </Section>
 
         <Section icon={Upload} title="Service Settings" description="Control visibility and add supporting information" >
-          <div className={fieldGridClass}><Field label="Service Status"><Select name="status" value={form.status} onChange={update}><option>Active</option><option>Inactive</option></Select></Field><Field label="Featured Service"><Select name="featured_service" value={form.featured_service} onChange={update}><option>No</option><option>Yes</option></Select></Field><Field label="Service Icon / Image Upload" className="sm:col-span-2"><input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" /><button type="button" onClick={() => fileRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-5 text-sm text-slate-500 hover:border-orange-400 hover:bg-orange-50"><ImagePlus size={18} /> {form.service_image ? 'Image selected' : 'Choose an image'}</button></Field><Field label="Terms & Conditions" className="sm:col-span-2"><textarea name="terms_conditions" value={form.terms_conditions} onChange={update} rows="3" className={`${inputClass} resize-y`} placeholder="Enter terms and conditions..." /></Field><Field label="Additional Notes" className="sm:col-span-2"><textarea name="additional_notes" value={form.additional_notes} onChange={update} rows="3" className={`${inputClass} resize-y`} placeholder="Internal notes for staff..." /></Field></div>
+          <div className={fieldGridClass}><Field label="Service Status"><Select name="status" value={form.status} onChange={update}><option>Active</option><option>Inactive</option></Select></Field><Field label="Featured Service"><Select name="featured_service" value={form.featured_service} onChange={update}><option>No</option><option>Yes</option></Select></Field><Field label="Service Icon / Image Upload" className="sm:col-span-2"><input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImage} className="hidden" /><button type="button" onClick={() => fileRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-5 text-sm text-slate-500 hover:border-orange-400 hover:bg-orange-50"><ImagePlus size={18} /> {imageFile ? imageFile.name : form.service_image ? 'Existing image saved' : 'Choose an image'}</button><span className="mt-1 block text-xs text-slate-500">PNG, JPG, WEBP or GIF up to 5 MB</span></Field><Field label="Terms & Conditions" className="sm:col-span-2"><textarea name="terms_conditions" value={form.terms_conditions} onChange={update} rows="3" className={`${inputClass} resize-y`} placeholder="Enter terms and conditions..." /></Field><Field label="Additional Notes" className="sm:col-span-2"><textarea name="additional_notes" value={form.additional_notes} onChange={update} rows="3" className={`${inputClass} resize-y`} placeholder="Internal notes for staff..." /></Field></div>
         </Section>
 
         <div className="flex flex-col-reverse gap-3 pb-4 sm:col-span-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => (onCancel ? onCancel() : navigate('/admin/service-management/all'))} className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>{!isEditing && <button type="button" disabled={saving} onClick={() => save(true)} className="rounded-lg border border-orange-200 bg-orange-50 px-5 py-3 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-60">Save & Add Another</button>}<button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 disabled:opacity-60">{saving ? 'Saving...' : <><Check size={17} /> {isEditing ? 'Update Service' : 'Save Service'}</>}</button></div>
