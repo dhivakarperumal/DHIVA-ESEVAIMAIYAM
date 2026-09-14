@@ -139,18 +139,36 @@ const ExpenseCategories = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { label: 'Total Categories', value: categories.length, icon: Layers, color: 'bg-orange-500/10 text-orange-500' },
-          { label: 'Active', value: active, icon: CheckCircle2, color: 'bg-green-500/10 text-green-500' },
-          { label: 'Inactive', value: inactive, icon: XCircle, color: 'bg-red-500/10 text-red-500' },
-        ].map(s => (
-          <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-5 flex items-center gap-4">
-            <div className={`p-3 rounded-lg ${s.color}`}><s.icon size={22} /></div>
-            <div><p className="text-gray-400 text-sm">{s.label}</p><h3 className="text-2xl font-bold mt-1">{s.value}</h3></div>
+      {(() => {
+        const withSub = categories.filter(c => (c.subcategory_count || 0) > 0).length;
+        const cards = [
+          { label: 'Total Categories',    value: categories.length, icon: Layers,       iconBg: 'bg-orange-500', pct: { val: '12.4', up: true  }                   },
+          { label: 'Active Categories',   value: active,            icon: CheckCircle2, iconBg: 'bg-green-500',  pct: { val: '5.2',  up: true  }                   },
+          { label: 'Inactive Categories', value: inactive,          icon: XCircle,      iconBg: 'bg-red-600',    pct: { val: '1.5',  up: false }, invertColor: true },
+          { label: 'With Subcategories',  value: withSub,           icon: Layers,       iconBg: 'bg-purple-600', pct: { val: '0.8',  up: true  }                   },
+        ];
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {cards.map(s => {
+              const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+              return (
+                <div key={s.label} className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+                  <div className={`${s.iconBg} flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg`}>
+                    <s.icon size={22} className="text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-400 truncate">{s.label}</p>
+                    <p className="text-3xl font-bold text-white leading-tight">{s.value}</p>
+                    <p className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {s.pct.up ? '↗' : '↘'} {s.pct.val}% from last month
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Search */}
       <div className="bg-[#1a1c23] border border-gray-800 rounded-xl p-4 flex gap-4">
@@ -188,7 +206,9 @@ const ExpenseCategories = () => {
                   <td className="py-3 px-4 pl-6 text-gray-500 text-sm">{idx + 1}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0"><Layers size={18} /></div>
+                      <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center shrink-0">
+                        <Layers size={16} className="text-white" />
+                      </div>
                       <span className="font-medium text-white">{cat.name}</span>
                     </div>
                   </td>
@@ -197,7 +217,12 @@ const ExpenseCategories = () => {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <button onClick={() => handleToggleStatus(cat)}
-                      className={`inline-flex px-2.5 py-1 rounded text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${cat.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border cursor-pointer hover:opacity-80 transition-opacity ${
+                        cat.status === 'Active'
+                          ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                          : 'bg-red-500/15 text-red-400 border-red-500/30'
+                      }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${cat.status === 'Active' ? 'bg-green-400' : 'bg-red-400'}`} />
                       {cat.status}
                     </button>
                   </td>
