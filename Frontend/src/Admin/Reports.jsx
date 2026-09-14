@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, CalendarDays, CheckCircle2, Download, FileText, IndianRupee, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, CheckCircle2, Download, FileText, IndianRupee, TrendingUp, TrendingDown, Users } from 'lucide-react';
 
 const reportData = {
   Today: { applications: 42, completed: 31, revenue: 48750, expenses: 12750 },
@@ -26,26 +26,43 @@ const Reports = () => {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div><h1 className="text-2xl font-semibold">Overall Reports</h1><p className="mt-1 text-sm text-white/50">A complete view of applications, revenue, expenses, and service performance.</p></div>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-[#1a1b23] px-3"><CalendarDays size={15} className="text-orange-400" /><select value={period} onChange={(event) => setPeriod(event.target.value)} className="bg-transparent text-sm text-white outline-none"><option>Today</option><option>Week</option><option>Month</option><option>Year</option></select></div>
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-gray-800 bg-[#1a1c23] px-3"><CalendarDays size={15} className="text-orange-400" /><select value={period} onChange={(event) => setPeriod(event.target.value)} className="bg-transparent text-sm text-white outline-none"><option>Today</option><option>Week</option><option>Month</option><option>Year</option></select></div>
           <button type="button" onClick={() => window.print()} className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-3 text-sm font-medium hover:bg-orange-600"><Download size={16} /> Export</button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Applications', data.applications.toLocaleString(), FileText, 'text-blue-400'],
-          ['Completed', data.completed.toLocaleString(), CheckCircle2, 'text-green-400'],
-          ['Revenue', `₹ ${data.revenue.toLocaleString()}`, IndianRupee, 'text-orange-400'],
-          ['Net Revenue', `₹ ${netRevenue.toLocaleString()}`, TrendingUp, 'text-cyan-400'],
-        ].map(([label, value, Icon, color]) => <div key={label} className="rounded-xl border border-white/10 bg-[#1a1b23] p-5"><div className="flex items-center justify-between"><p className="text-xs uppercase tracking-wide text-white/45">{label}</p><Icon size={18} className={color} /></div><p className="mt-3 text-2xl font-semibold">{value}</p></div>)}
+          { label: 'Applications', value: data.applications.toLocaleString(), icon: FileText,    iconBg: 'bg-blue-500',   pct: { val: '12.4', up: true  } },
+          { label: 'Completed',    value: data.completed.toLocaleString(),    icon: CheckCircle2, iconBg: 'bg-green-500',  pct: { val: '5.2',  up: true  } },
+          { label: 'Revenue',      value: `₹ ${data.revenue.toLocaleString()}`, icon: IndianRupee, iconBg: 'bg-orange-500', pct: { val: '8.7',  up: true  } },
+          { label: 'Net Revenue',  value: `₹ ${netRevenue.toLocaleString()}`, icon: TrendingUp,  iconBg: 'bg-cyan-500',   pct: { val: '2.1',  up: true  } },
+        ].map((s) => {
+          const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+          return (
+            <div key={s.label} className="flex items-center gap-4 rounded-xl border border-gray-800 bg-[#1a1c23] p-4">
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${s.iconBg}`}>
+                <s.icon size={22} className="text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-gray-400">{s.label}</p>
+                <p className="truncate text-3xl font-bold leading-tight text-white">{s.value}</p>
+                <p className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                  {s.pct.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  <span>{s.pct.val}% from last month</span>
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-[#1a1b23] p-5 lg:col-span-2"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-semibold">Service Performance</h2><p className="mt-1 text-xs text-white/45">Top services for the selected period</p></div><BarChart3 size={20} className="text-orange-400" /></div><div className="space-y-5">{serviceRows.map((service) => <div key={service.name}><div className="mb-2 flex justify-between gap-4 text-sm"><span className="truncate text-white/80">{service.name}</span><span className="shrink-0 text-white/50">{service.completed}/{service.applications}</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-orange-500" style={{ width: `${service.progress}%` }} /></div><div className="mt-1 flex justify-between text-xs text-white/40"><span>{service.progress}% completion</span><span>₹ {service.revenue.toLocaleString()}</span></div></div>)}</div></div>
-        <div className="rounded-xl border border-white/10 bg-[#1a1b23] p-5"><h2 className="font-semibold">Report Summary</h2><div className="mt-5 space-y-4 text-sm"><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Completion rate</span><span className="font-semibold text-green-400">{completionRate}%</span></div><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Total expenses</span><span className="font-semibold">₹ {data.expenses.toLocaleString()}</span></div><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Average application value</span><span className="font-semibold">₹ {Math.round(data.revenue / data.applications).toLocaleString()}</span></div><div className="flex items-center justify-between"><span className="text-white/50">Active centers</span><span className="flex items-center gap-1 font-semibold"><Users size={15} className="text-orange-400" /> 8</span></div></div></div>
+        <div className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5 lg:col-span-2"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-semibold">Service Performance</h2><p className="mt-1 text-xs text-white/45">Top services for the selected period</p></div><BarChart3 size={20} className="text-orange-400" /></div><div className="space-y-5">{serviceRows.map((service) => <div key={service.name}><div className="mb-2 flex justify-between gap-4 text-sm"><span className="truncate text-white/80">{service.name}</span><span className="shrink-0 text-white/50">{service.completed}/{service.applications}</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-orange-500" style={{ width: `${service.progress}%` }} /></div><div className="mt-1 flex justify-between text-xs text-white/40"><span>{service.progress}% completion</span><span>₹ {service.revenue.toLocaleString()}</span></div></div>)}</div></div>
+        <div className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5"><h2 className="font-semibold">Report Summary</h2><div className="mt-5 space-y-4 text-sm"><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Completion rate</span><span className="font-semibold text-green-400">{completionRate}%</span></div><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Total expenses</span><span className="font-semibold">₹ {data.expenses.toLocaleString()}</span></div><div className="flex items-center justify-between border-b border-white/10 pb-4"><span className="text-white/50">Average application value</span><span className="font-semibold">₹ {Math.round(data.revenue / data.applications).toLocaleString()}</span></div><div className="flex items-center justify-between"><span className="text-white/50">Active centers</span><span className="flex items-center gap-1 font-semibold"><Users size={15} className="text-orange-400" /> 8</span></div></div></div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#1a1b23] p-5"><h2 className="mb-4 font-semibold">Financial Overview</h2><div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><div className="rounded-lg bg-green-500/10 p-4"><p className="text-xs text-white/50">Income</p><p className="mt-1 text-xl font-semibold text-green-400">₹ {data.revenue.toLocaleString()}</p></div><div className="rounded-lg bg-red-500/10 p-4"><p className="text-xs text-white/50">Expenses</p><p className="mt-1 text-xl font-semibold text-red-400">₹ {data.expenses.toLocaleString()}</p></div><div className="rounded-lg bg-orange-500/10 p-4"><p className="text-xs text-white/50">Balance</p><p className="mt-1 text-xl font-semibold text-orange-400">₹ {netRevenue.toLocaleString()}</p></div></div></div>
+      <div className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5"><h2 className="mb-4 font-semibold">Financial Overview</h2><div className="grid grid-cols-1 gap-4 sm:grid-cols-3"><div className="rounded-lg bg-green-500/10 p-4"><p className="text-xs text-white/50">Income</p><p className="mt-1 text-xl font-semibold text-green-400">₹ {data.revenue.toLocaleString()}</p></div><div className="rounded-lg bg-red-500/10 p-4"><p className="text-xs text-white/50">Expenses</p><p className="mt-1 text-xl font-semibold text-red-400">₹ {data.expenses.toLocaleString()}</p></div><div className="rounded-lg bg-orange-500/10 p-4"><p className="text-xs text-white/50">Balance</p><p className="mt-1 text-xl font-semibold text-orange-400">₹ {netRevenue.toLocaleString()}</p></div></div></div>
     </section>
   );
 };

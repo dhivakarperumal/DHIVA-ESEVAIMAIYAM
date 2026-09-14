@@ -16,6 +16,8 @@ import {
   Trash2,
   UserRound,
   X,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 
 const baseApplications = [
@@ -177,30 +179,29 @@ const Applications = () => {
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          ["Total Applications", "1,248", FileText, "text-blue-400", "+18.6%"],
-          ["Approved", "842", CheckCircle2, "text-emerald-400", "+12.1%"],
-          ["Pending", "162", Clock3, "text-amber-400", "-4.8%"],
-        ].map(([label, value, Icon, tone, change]) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-white/10 bg-[#11131a] p-4 shadow-lg shadow-black/20"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-white/55">{label}</p>
-                <h3 className="mt-2 text-3xl font-bold text-white">{value}</h3>
+          { label: 'Total Applications', value: '1,248', icon: FileText,    iconBg: 'bg-blue-500',   pct: { val: '18.6', up: true  } },
+          { label: 'Approved',           value: '842',   icon: CheckCircle2, iconBg: 'bg-emerald-500',  pct: { val: '12.1',  up: true  } },
+          { label: 'Pending',            value: '162',   icon: Clock3,      iconBg: 'bg-amber-500',  pct: { val: '4.8',  up: false  }, invertColor: true },
+        ].map((s) => {
+          const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+          return (
+            <div key={s.label} className="flex items-center gap-4 rounded-xl border border-gray-800 bg-[#1a1c23] p-4">
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${s.iconBg}`}>
+                <s.icon size={22} className="text-white" />
               </div>
-              <div className={`rounded-xl bg-white/5 p-2 ${tone}`}>
-                <Icon size={18} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-gray-400">{s.label}</p>
+                <p className="truncate text-3xl font-bold leading-tight text-white">{s.value}</p>
+                <p className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                  {s.pct.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  <span>{s.pct.val}% from last month</span>
+                </p>
               </div>
             </div>
-            <p className="mt-3 text-xs font-medium text-emerald-300">
-              {change} this month
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#11131a]">
@@ -295,7 +296,8 @@ const Applications = () => {
           <div className="overflow-x-auto">
             <table className="min-w-[760px] w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-white/50">
+                <tr className="border-b border-gray-800 text-gray-400">
+                  <th className="px-5 py-3 font-medium">S.No</th>
                   <th className="px-5 py-3 font-medium">Applicant</th>
                   <th className="px-5 py-3 font-medium">Service</th>
                   <th className="px-5 py-3 font-medium">Center</th>
@@ -305,25 +307,35 @@ const Applications = () => {
                 </tr>
               </thead>
               <tbody>
-                {pageRecords.map((record) => (
+                {pageRecords.map((record, index) => (
                   <tr
                     key={record.id}
-                    className="border-b border-white/5 text-white/80 transition hover:bg-white/[0.04]"
+                    className="border-b border-gray-800/50 text-gray-300 transition hover:bg-white/[.02]"
                   >
+                    <td className="px-5 py-4 text-gray-500 font-medium text-sm">{(currentPage - 1) * pageSize + index + 1}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="rounded-full bg-white/5 p-2 text-[#f8740e]">
+                        <div className="rounded-lg bg-orange-500 p-2 text-white">
                           <UserRound size={16} />
                         </div>
-                        {record.applicant}
+                        <span className="font-medium text-white">{record.applicant}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">{record.service}</td>
                     <td className="px-5 py-4">{record.center}</td>
                     <td className="px-5 py-4">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[record.status]}`}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                          record.status === 'Approved' ? 'border-green-500/30 bg-green-500/15 text-green-400' :
+                          record.status === 'Pending' ? 'border-amber-500/30 bg-amber-500/15 text-amber-400' :
+                          'border-sky-500/30 bg-sky-500/15 text-sky-400'
+                        }`}
                       >
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          record.status === 'Approved' ? 'bg-green-400' :
+                          record.status === 'Pending' ? 'bg-amber-400' :
+                          'bg-sky-400'
+                        }`} />
                         {record.status}
                       </span>
                     </td>
@@ -343,19 +355,28 @@ const Applications = () => {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-white/5 p-2 text-[#f8740e]">
+                    <div className="rounded-lg bg-orange-500 p-2 text-white">
                       <UserRound size={16} />
                     </div>
                     <div>
-                      <h3 className="font-medium">{record.applicant}</h3>
+                      <h3 className="font-medium text-white">{record.applicant}</h3>
                       <p className="text-xs text-white/45">
                         Application #{record.id}
                       </p>
                     </div>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${statusStyles[record.status]}`}
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                      record.status === 'Approved' ? 'border-green-500/30 bg-green-500/15 text-green-400' :
+                      record.status === 'Pending' ? 'border-amber-500/30 bg-amber-500/15 text-amber-400' :
+                      'border-sky-500/30 bg-sky-500/15 text-sky-400'
+                    }`}
                   >
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      record.status === 'Approved' ? 'bg-green-400' :
+                      record.status === 'Pending' ? 'bg-amber-400' :
+                      'bg-sky-400'
+                    }`} />
                     {record.status}
                   </span>
                 </div>

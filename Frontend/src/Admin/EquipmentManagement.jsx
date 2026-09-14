@@ -20,6 +20,8 @@ import {
   Trash2,
   Wrench,
   X,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 import api from "../api";
 
@@ -227,28 +229,33 @@ const EquipmentManagement = () => {
       label: "Total Equipment",
       value: equipment.length,
       icon: Package,
-      color: "text-blue-300",
+      iconBg: "bg-blue-500",
+      pct: { val: "5.2", up: true },
     },
     {
       label: "Working",
       value: equipment.filter((item) => item.status === "Working").length,
       icon: ShieldCheck,
-      color: "text-emerald-300",
+      iconBg: "bg-emerald-500",
+      pct: { val: "2.1", up: true },
     },
     {
       label: "Under Maintenance",
-      value: equipment.filter((item) => item.status === "Under Maintenance")
-        .length,
+      value: equipment.filter((item) => item.status === "Under Maintenance").length,
       icon: Wrench,
-      color: "text-amber-300",
+      iconBg: "bg-amber-500",
+      pct: { val: "0.5", up: false },
+      invertColor: true,
     },
     {
-      label: "Damaged",
+      label: "Damaged / Not Working",
       value: equipment.filter(
         (item) => item.status === "Damaged" || item.status === "Not Working",
       ).length,
       icon: AlertTriangle,
-      color: "text-red-300",
+      iconBg: "bg-red-600",
+      pct: { val: "1.2", up: true },
+      invertColor: true,
     },
     {
       label: "Warranty Expiring",
@@ -260,7 +267,9 @@ const EquipmentManagement = () => {
             new Date(Date.now() + 1000 * 60 * 60 * 24 * 90),
       ).length,
       icon: CalendarDays,
-      color: "text-violet-300",
+      iconBg: "bg-violet-600",
+      pct: { val: "0.8", up: false },
+      invertColor: true,
     },
   ];
   const openAdd = () => {
@@ -400,23 +409,31 @@ const EquipmentManagement = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {metrics.map(({ label, value, icon: Icon, color }) => (
-          <div
-            key={label}
-            className="flex items-start gap-4 rounded-xl border border-gray-800 bg-[#1a1c23] p-5"
-          >
+        {metrics.map((s) => {
+          const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
+          return (
             <div
-              className={`rounded-lg p-3 ${color.replace("text-", "bg-").replace("300", "500/10")} ${color}`}
+              key={s.label}
+              className="flex items-center gap-4 rounded-xl border border-gray-800 bg-[#1a1c23] p-4"
             >
-              <Icon size={24} />
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${s.iconBg}`}
+              >
+                <s.icon size={22} className="text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-gray-400">{s.label}</p>
+                <p className="truncate text-3xl font-bold leading-tight text-white">{s.value}</p>
+                <p
+                  className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${isPositive ? "text-green-400" : "text-red-400"}`}
+                >
+                  {s.pct.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  <span>{s.pct.val}% from last month</span>
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="mb-1 text-sm text-gray-400">{label}</p>
-              <h3 className="mb-2 text-2xl font-bold">{value}</h3>
-              <p className="text-xs text-gray-500">Current register</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {false && viewMode === "card" && (
           <div className="col-span-full grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((item, index) => (
@@ -644,15 +661,15 @@ const EquipmentManagement = () => {
                 filtered.map((item, index) => (
                   <tr
                     key={item.id}
-                    className="border-b border-gray-800/50 text-gray-300 transition-colors hover:bg-gray-800/20"
+                    className="border-b border-gray-800/50 text-gray-300 transition-colors hover:bg-white/[.02]"
                   >
-                    <td className="px-4 py-3 text-gray-500">{index + 1}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-500">{index + 1}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelected(item)}
                         className="flex items-center gap-3 text-left"
                       >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white">
                           <MonitorSmartphone size={17} />
                         </span>
                         <span>
@@ -694,8 +711,19 @@ const EquipmentManagement = () => {
                     <td className="px-4 py-3">{item.condition_name || "-"}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`whitespace-nowrap rounded border px-2 py-1 text-xs font-medium ${statusStyle[item.status] || statusStyle.Retired}`}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                          item.status === 'Working' ? 'border-green-500/30 bg-green-500/15 text-green-400' :
+                          item.status === 'Under Maintenance' ? 'border-amber-500/30 bg-amber-500/15 text-amber-400' :
+                          item.status === 'Damaged' || item.status === 'Not Working' ? 'border-red-500/30 bg-red-500/15 text-red-400' :
+                          'border-slate-500/30 bg-slate-500/15 text-slate-400'
+                        }`}
                       >
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          item.status === 'Working' ? 'bg-green-400' :
+                          item.status === 'Under Maintenance' ? 'bg-amber-400' :
+                          item.status === 'Damaged' || item.status === 'Not Working' ? 'bg-red-400' :
+                          'bg-slate-400'
+                        }`} />
                         {item.status}
                       </span>
                     </td>
