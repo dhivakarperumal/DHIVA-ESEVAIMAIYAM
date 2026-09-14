@@ -69,6 +69,7 @@ const ServiceCategories = () => {
   const [viewingCategory, setViewingCategory] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   
   // Form State
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -189,6 +190,13 @@ const ServiceCategories = () => {
     setViewingCategory(cat);
     setIsViewOpen(true);
   };
+
+  const toggleCategory = (cid) => setSelectedCategoryIds((current) => current.includes(cid)
+    ? current.filter((id) => id !== cid)
+    : [...current, cid]);
+  const toggleAllCategories = () => setSelectedCategoryIds((current) => current.length === categories.length
+    ? []
+    : categories.map((category) => category.cid));
 
   const handleClose = () => {
     setIsAddOpen(false);
@@ -340,6 +348,7 @@ const ServiceCategories = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 text-sm">
+                  <th className="py-4 px-4 w-12"><input type="checkbox" checked={categories.length > 0 && selectedCategoryIds.length === categories.length} onChange={toggleAllCategories} aria-label="Select all categories" className="h-4 w-4 accent-orange-500" /></th>
                   <th className="py-4 px-4 pl-6 font-medium">Category Info</th>
                   <th className="py-4 px-4 font-medium">Description</th>
                   <th className="py-4 px-4 font-medium">Subcategories</th>
@@ -350,6 +359,7 @@ const ServiceCategories = () => {
               <tbody>
                 {categories.map((cat) => (
                   <tr key={cat.cid} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
+                    <td className="py-3 px-4"><input type="checkbox" checked={selectedCategoryIds.includes(cat.cid)} onChange={() => toggleCategory(cat.cid)} aria-label={`Select ${cat.name}`} className="h-4 w-4 accent-orange-500" /></td>
                     <td className="py-3 px-4 pl-6 min-w-[250px]">
                       <div className="flex items-center gap-3">
                         {cat.image ? (
@@ -433,7 +443,8 @@ const ServiceCategories = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categories.map(cat => (
-            <div key={cat.cid} className="bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors flex flex-col">
+            <div key={cat.cid} className="relative bg-[#1a1c23] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors flex flex-col">
+              <div className="absolute z-10 p-3"><input type="checkbox" checked={selectedCategoryIds.includes(cat.cid)} onChange={() => toggleCategory(cat.cid)} aria-label={`Select ${cat.name}`} className="h-4 w-4 accent-orange-500" /></div>
               <div className="h-32 bg-[#0f1115] relative">
                 {cat.image ? (
                   <img src={cat.image} alt={cat.name} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
