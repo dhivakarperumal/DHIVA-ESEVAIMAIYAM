@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import api from '../api';
 import { 
   Search, 
   Download, 
@@ -23,119 +24,70 @@ import {
   List
 } from 'lucide-react';
 
-const mockUsers = [
-  {
-    id: 1,
-    name: 'K. Srinivasan',
-    email: 'srinivasan.k@gmail.com',
-    username: 'ksrinivasan',
-    role: 'Super Admin',
-    center: 'Head Office',
-    mobile: '+91 98765 43210',
-    status: 'Active',
-    joinedDate: '20 Mar 2024',
-    joinedTime: '10:30 AM',
-    avatar: 'https://i.pravatar.cc/150?u=1'
-  },
-  {
-    id: 2,
-    name: 'M. Kavitha',
-    email: 'kavitha.m@gmail.com',
-    username: 'mkavitha',
-    role: 'Center Admin',
-    center: 'Vellore Center',
-    mobile: '+91 93456 78901',
-    status: 'Active',
-    joinedDate: '05 Apr 2024',
-    joinedTime: '11:20 AM',
-    avatar: 'https://i.pravatar.cc/150?u=2'
-  },
-  {
-    id: 3,
-    name: 'R. Prakash',
-    email: 'prakash.r@gmail.com',
-    username: 'rprakash',
-    role: 'Operator',
-    center: 'Ambur Center',
-    mobile: '+91 97890 12345',
-    status: 'Active',
-    joinedDate: '12 Apr 2024',
-    joinedTime: '09:15 AM',
-    avatar: 'https://i.pravatar.cc/150?u=3'
-  },
-  {
-    id: 4,
-    name: 'S. Dinesh',
-    email: 'dinesh.s@gmail.com',
-    username: 'sdinesh',
-    role: 'Verifier',
-    center: 'Tirupathur Center',
-    mobile: '+91 90123 45678',
-    status: 'Active',
-    joinedDate: '18 Apr 2024',
-    joinedTime: '02:45 PM',
-    avatar: 'https://i.pravatar.cc/150?u=4'
-  },
-  {
-    id: 5,
-    name: 'P. Lakshmi',
-    email: 'lakshmi.p@gmail.com',
-    username: 'plakshmi',
-    role: 'Data Entry',
-    center: 'Vaniyambadi Center',
-    mobile: '+91 90987 65432',
-    status: 'Inactive',
-    joinedDate: '21 Apr 2024',
-    joinedTime: '04:10 PM',
-    avatar: 'https://i.pravatar.cc/150?u=5'
-  },
-  {
-    id: 6,
-    name: 'A. Manikandan',
-    email: 'manikandan.a@gmail.com',
-    username: 'amanikandan',
-    role: 'Operator',
-    center: 'Arcot Center',
-    mobile: '+91 93654 78901',
-    status: 'Active',
-    joinedDate: '28 Apr 2024',
-    joinedTime: '10:05 AM',
-    avatar: 'https://i.pravatar.cc/150?u=6'
-  },
-  {
-    id: 7,
-    name: 'J. Priya',
-    email: 'priya.j@gmail.com',
-    username: 'jpriya',
-    role: 'Verifier',
-    center: 'Gudiyatham Center',
-    mobile: '+91 95001 23456',
-    status: 'Inactive',
-    joinedDate: '02 May 2024',
-    joinedTime: '01:30 PM',
-    avatar: 'https://i.pravatar.cc/150?u=7'
-  },
-  {
-    id: 8,
-    name: 'V. Mohan',
-    email: 'mohan.v@gmail.com',
-    username: 'vmohan',
-    role: 'Data Entry',
-    center: 'Chennai Center',
-    mobile: '+91 94444 55678',
-    status: 'Active',
-    joinedDate: '06 May 2024',
-    joinedTime: '09:40 AM',
-    avatar: 'https://i.pravatar.cc/150?u=8'
-  }
-];
+const formatJoinedDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+const formatJoinedTime = (value) => value ? new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+const mapUser = (user) => ({
+  id: user.user_id,
+  name: user.username,
+  email: user.email,
+  username: user.username,
+  role: user.role || 'Customer',
+  center: '-',
+  mobile: user.mobile || '-',
+  status: user.status || 'Inactive',
+  joinedDate: formatJoinedDate(user.created_at),
+  joinedTime: formatJoinedTime(user.created_at),
+  avatar: `https://i.pravatar.cc/150?u=${user.user_id}`,
+});
 
 const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [viewMode, setViewMode] = useState('table');
+  const [savingUser, setSavingUser] = useState(false);
+  const [userForm, setUserForm] = useState({ username: '', email: '', mobile: '', password: '', confirmPassword: '', role: 'Staff', status: 'Active' });
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await api.get('/users', { params: { page: 1, limit: 100 } });
+      setUsers((response.data.data || []).map(mapUser));
+    } catch (error) {
+      window.alert(error.response?.data?.message || 'Unable to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const updateUserForm = (field, value) => setUserForm((current) => ({ ...current, [field]: value }));
+  const closeAddUser = () => {
+    setIsAddUserOpen(false);
+    setUserForm({ username: '', email: '', mobile: '', password: '', confirmPassword: '', role: 'Staff', status: 'Active' });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+  const saveUser = async (event) => {
+    event.preventDefault();
+    if (userForm.password !== userForm.confirmPassword) return window.alert('Passwords do not match');
+    setSavingUser(true);
+    try {
+      const response = await api.post('/users', { username: userForm.username, email: userForm.email, mobile: userForm.mobile, password: userForm.password, role: userForm.role, status: userForm.status });
+      const created = response.data.user;
+      setUsers((current) => [mapUser(created), ...current]);
+      closeAddUser();
+      window.alert('User created successfully');
+    } catch (error) {
+      window.alert(error.response?.data?.message || 'Unable to create user');
+    } finally {
+      setSavingUser(false);
+    }
+  };
 
   const toggleUserSelection = (id) => {
     setSelectedUsers(prev => 
@@ -144,12 +96,20 @@ const UserManagement = () => {
   };
 
   const toggleAll = () => {
-    if (selectedUsers.length === mockUsers.length) {
+    if (selectedUsers.length === users.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(mockUsers.map(u => u.id));
+      setSelectedUsers(users.map(u => u.id));
     }
   };
+
+  const activeUsers = users.filter((user) => user.status === 'Active').length;
+  const inactiveUsers = users.filter((user) => user.status === 'Inactive').length;
+  const newThisMonth = users.filter((user) => {
+    const created = new Date(user.joinedDate);
+    const now = new Date();
+    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+  }).length;
 
   return (
     <div className="flex flex-col gap-6 text-white p-2 sm:p-4">
@@ -245,7 +205,7 @@ const UserManagement = () => {
           </div>
           <div>
             <p className="text-gray-400 text-sm mb-1">Total Users</p>
-            <h3 className="text-2xl font-bold mb-2">532</h3>
+            <h3 className="text-2xl font-bold mb-2">{users.length}</h3>
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span>↑ 12.4%</span>
               <span className="text-gray-500">from last month</span>
@@ -260,7 +220,7 @@ const UserManagement = () => {
           </div>
           <div>
             <p className="text-gray-400 text-sm mb-1">Active Users</p>
-            <h3 className="text-2xl font-bold mb-2">458</h3>
+            <h3 className="text-2xl font-bold mb-2">{activeUsers}</h3>
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span>↑ 15.6%</span>
               <span className="text-gray-500">from last month</span>
@@ -275,7 +235,7 @@ const UserManagement = () => {
           </div>
           <div>
             <p className="text-gray-400 text-sm mb-1">Inactive Users</p>
-            <h3 className="text-2xl font-bold mb-2">56</h3>
+            <h3 className="text-2xl font-bold mb-2">{inactiveUsers}</h3>
             <p className="text-xs text-red-500 flex items-center gap-1">
               <span>↓ 6.7%</span>
               <span className="text-gray-500">from last month</span>
@@ -290,7 +250,7 @@ const UserManagement = () => {
           </div>
           <div>
             <p className="text-gray-400 text-sm mb-1">New This Month</p>
-            <h3 className="text-2xl font-bold mb-2">38</h3>
+            <h3 className="text-2xl font-bold mb-2">{newThisMonth}</h3>
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span>↑ 11.2%</span>
               <span className="text-gray-500">from last month</span>
@@ -309,7 +269,7 @@ const UserManagement = () => {
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 rounded border-gray-600 bg-[#0f1115] accent-orange-500"
-                    checked={selectedUsers.length === mockUsers.length && mockUsers.length > 0}
+                    checked={selectedUsers.length === users.length && users.length > 0}
                     onChange={toggleAll}
                   />
                 </th>
@@ -338,7 +298,11 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {mockUsers.map((user) => (
+              {loadingUsers ? (
+                <tr><td colSpan="9" className="py-16 text-center text-gray-500"><RefreshCcw className="mr-2 inline animate-spin" size={18} />Loading users...</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan="9" className="py-16 text-center text-gray-500">No users found.</td></tr>
+              ) : users.map((user) => (
                 <tr key={user.id} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
                   <td className="py-3 px-4 pl-6">
                     <input 
@@ -409,7 +373,7 @@ const UserManagement = () => {
         {/* Pagination */}
         <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-gray-400">
-            Showing 1 to 8 of 532 users
+            Showing {users.length ? 1 : 0} to {users.length} of {users.length} users
           </div>
           <div className="flex items-center gap-1">
             <button className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-700 text-gray-400 hover:bg-gray-800 disabled:opacity-50">
@@ -442,7 +406,7 @@ const UserManagement = () => {
       </div>
 
       <div className={`${viewMode === 'card' ? '' : 'hidden'} grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3`}>
-        {mockUsers.map((user) => (
+        {users.map((user) => (
           <article key={user.id} className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5 transition-colors hover:border-orange-500/40">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -492,7 +456,7 @@ const UserManagement = () => {
             </div>
 
             {/* Drawer Body (Form) */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+            <form onSubmit={saveUser} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm text-gray-300 font-medium">Full Name <span className="text-red-500">*</span></label>
@@ -500,13 +464,13 @@ const UserManagement = () => {
                 </div>
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm text-gray-300 font-medium">Username <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Enter username" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
+                  <input required type="text" placeholder="Enter username" value={userForm.username} onChange={(e) => updateUserForm('username', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Email Address <span className="text-red-500">*</span></label>
-                <input type="email" placeholder="Enter email address" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
+                <input required type="email" placeholder="Enter email address" value={userForm.email} onChange={(e) => updateUserForm('email', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
               </div>
 
               <div className="flex gap-4">
@@ -516,17 +480,19 @@ const UserManagement = () => {
                     <select className="bg-[#0f1115] border border-gray-800 rounded-l-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-gray-600 border-r-0">
                       <option>+91</option>
                     </select>
-                    <input type="text" placeholder="Enter mobile number" className="flex-1 bg-[#0f1115] border border-gray-800 rounded-r-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
+                    <input required type="text" placeholder="Enter mobile number" value={userForm.mobile} onChange={(e) => updateUserForm('mobile', e.target.value)} className="flex-1 bg-[#0f1115] border border-gray-800 rounded-r-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600" />
                   </div>
                 </div>
                 <div className="flex-[2] space-y-1.5">
                   <label className="text-sm text-gray-300 font-medium">Role <span className="text-red-500">*</span></label>
                   <div className="relative">
-                    <select defaultValue="" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-400 appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
-                      <option value="" disabled>Select role</option>
+                    <select value={userForm.role} onChange={(e) => updateUserForm('role', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white appearance-none focus:outline-none focus:border-gray-600 cursor-pointer">
+                      <option value="Staff">Staff</option>
                       <option value="Super Admin">Super Admin</option>
-                      <option value="Center Admin">Center Admin</option>
-                      <option value="Operator">Operator</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Employee">Employee</option>
+                      <option value="Customer">Customer</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
                   </div>
@@ -548,7 +514,7 @@ const UserManagement = () => {
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Password <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input type={showPassword ? "text" : "password"} placeholder="Enter password" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
+                  <input required minLength={8} type={showPassword ? "text" : "password"} placeholder="Enter password" value={userForm.password} onChange={(e) => updateUserForm('password', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -559,7 +525,7 @@ const UserManagement = () => {
               <div className="space-y-1.5">
                 <label className="text-sm text-gray-300 font-medium">Confirm Password <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input type={showConfirmPassword ? "text" : "password"} placeholder="Confirm password" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
+                  <input required minLength={8} type={showConfirmPassword ? "text" : "password"} placeholder="Confirm password" value={userForm.confirmPassword} onChange={(e) => updateUserForm('confirmPassword', e.target.value)} className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 pr-10" />
                   <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -570,11 +536,11 @@ const UserManagement = () => {
                 <label className="text-sm text-gray-300 font-medium">Status <span className="text-red-500">*</span></label>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" defaultChecked className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
+                    <input type="radio" name="status" value="Active" checked={userForm.status === 'Active'} onChange={(e) => updateUserForm('status', e.target.value)} className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
                     <span className="text-sm text-white">Active</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="status" className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
+                    <input type="radio" name="status" value="Inactive" checked={userForm.status === 'Inactive'} onChange={(e) => updateUserForm('status', e.target.value)} className="w-4 h-4 accent-orange-500 border-gray-600 bg-[#0f1115]" />
                     <span className="text-sm text-gray-400">Inactive</span>
                   </label>
                 </div>
@@ -585,16 +551,16 @@ const UserManagement = () => {
                 <textarea rows="3" placeholder="Enter any notes (optional)" className="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-600 resize-none"></textarea>
                 <div className="text-right text-xs text-gray-500">0 / 250</div>
               </div>
-            </div>
+            </form>
 
             {/* Drawer Footer */}
             <div className="p-6 border-t border-gray-800 flex gap-4 bg-[#1a1c23]">
               <button onClick={() => setIsAddUserOpen(false)} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
                 Cancel
               </button>
-              <button className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <button type="button" onClick={() => saveUser({ preventDefault: () => {} })} disabled={savingUser} className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                 <UserPlus size={18} />
-                <span>Save User</span>
+                <span>{savingUser ? 'Saving...' : 'Save User'}</span>
               </button>
             </div>
           </div>

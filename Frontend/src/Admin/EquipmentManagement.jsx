@@ -417,7 +417,7 @@ const EquipmentManagement = () => {
             </div>
           </div>
         ))}
-        {viewMode === "card" && (
+        {false && viewMode === "card" && (
           <div className="col-span-full grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((item, index) => (
               <article
@@ -575,6 +575,31 @@ const EquipmentManagement = () => {
           </div>
         </div>
       </div>
+      {viewMode === "card" && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((item, index) => (
+            <article key={item.id} className="rounded-xl border border-gray-800 bg-[#1a1c23] p-5 transition-colors hover:border-orange-500/40">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500"><MonitorSmartphone size={20} /></div>
+                  <div><p className="text-xs text-gray-500">S No {index + 1}</p><h3 className="font-medium text-white">{item.equipment_name}</h3><p className="text-xs text-orange-300">{item.asset_id}</p></div>
+                </div>
+                <span className={`rounded border px-2 py-1 text-xs font-medium ${statusStyle[item.status] || statusStyle.Retired}`}>{item.status}</span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-gray-800 pt-4 text-sm">
+                <div><p className="text-xs text-gray-500">Category</p><p className="mt-1 text-gray-300">{item.category || "-"}</p></div>
+                <div><p className="text-xs text-gray-500">Condition</p><p className="mt-1 text-gray-300">{item.condition_name || "-"}</p></div>
+                <div><p className="text-xs text-gray-500">Location</p><p className="mt-1 text-gray-300">{item.current_location || "-"}</p></div>
+                <div><p className="text-xs text-gray-500">Assigned Staff</p><p className="mt-1 text-gray-300">{item.assigned_staff || "-"}</p></div>
+                <div><p className="text-xs text-gray-500">Warranty End</p><p className="mt-1 text-gray-300">{formatDate(item.warranty_end_date)}</p></div>
+                <div><p className="text-xs text-gray-500">Quantity</p><p className="mt-1 text-gray-300">{item.quantity || 0}</p></div>
+              </div>
+              <div className="mt-5 flex justify-end gap-2 border-t border-gray-800 pt-4"><button onClick={() => setSelected(item)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white" title="View"><Eye size={16} /></button><button onClick={() => openEdit(item)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-blue-400" title="Edit"><Edit2 size={16} /></button><button onClick={() => deleteEquipment(item)} className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-700 hover:text-red-400" title="Delete"><Trash2 size={16} /></button></div>
+            </article>
+          ))}
+          {!loading && !filtered.length && <div className="col-span-full rounded-xl border border-gray-800 bg-[#1a1c23] py-16 text-center"><Package className="mx-auto mb-3 text-gray-600" size={30} /><p className="text-gray-400">No equipment matches these filters.</p></div>}
+        </div>
+      )}
       <div
         className={`${viewMode === "table" ? "" : "hidden"} overflow-hidden rounded-xl border border-gray-800 bg-[#1a1c23]`}
       >
