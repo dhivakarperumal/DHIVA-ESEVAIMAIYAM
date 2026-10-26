@@ -14,6 +14,7 @@ const equipmentRouter = require("./src/routers/equipmentRouter");
 const serviceRouter = require("./src/routers/serviceRouter");
 const chargeRouter = require("./src/routers/chargeRouter");
 const serviceDocumentRouter = require("./src/routers/serviceDocumentRouter");
+const applicationRouter = require("./src/routers/applicationRouter");
 
 const app = express();
 const als = new AsyncLocalStorage();
@@ -53,6 +54,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/expenses", expenseRouter);
 app.use("/api/equipment", equipmentRouter);
 app.use("/api/services", serviceRouter);
+app.use("/api/applications", applicationRouter);
 app.use("/api/service-charges", chargeRouter);
 app.use("/api/service-documents", serviceDocumentRouter);
 

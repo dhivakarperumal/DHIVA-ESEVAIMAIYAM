@@ -88,6 +88,24 @@ async function initDB() {
     `);
 
     await connection.execute(`
+      CREATE TABLE IF NOT EXISTS applications (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        applicant_name VARCHAR(150) NOT NULL,
+        mobile VARCHAR(20) DEFAULT NULL,
+        email VARCHAR(255) DEFAULT NULL,
+        service_id INT NOT NULL,
+        center_name VARCHAR(150) DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+        notes TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_applications_status (status),
+        INDEX idx_applications_service (service_id),
+        FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS service_charges (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         service_id INT NOT NULL,

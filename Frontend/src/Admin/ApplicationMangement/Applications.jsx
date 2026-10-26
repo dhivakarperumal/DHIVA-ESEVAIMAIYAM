@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -8,68 +9,32 @@ import {
   Eye,
   FileText,
   Grid2X2,
-  Pencil,
   Plus,
   Search,
-  SlidersHorizontal,
   Table2,
   Trash2,
   UserRound,
   X,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
-
-const baseApplications = [
-  {
-    applicant: "Priya Natarajan",
-    service: "Senior Care",
-    center: "Anna Nagar",
-    status: "Approved",
-    updatedAt: "2026-07-28",
-  },
-  {
-    applicant: "Karthik Raman",
-    service: "Home Nursing",
-    center: "Tambaram",
-    status: "Pending",
-    updatedAt: "2026-07-29",
-  },
-  {
-    applicant: "Malar Venkatesh",
-    service: "Physiotherapy",
-    center: "T Nagar",
-    status: "Review",
-    updatedAt: "2026-07-30",
-  },
-  {
-    applicant: "Selvi Murugan",
-    service: "Daily Assistance",
-    center: "Madhavaram",
-    status: "Approved",
-    updatedAt: "2026-07-31",
-  },
-];
-
-const applications = Array.from({ length: 24 }, (_, index) => ({
-  ...baseApplications[index % baseApplications.length],
-  id: index + 1,
-  applicant:
-    index < baseApplications.length
-      ? baseApplications[index].applicant
-      : `${baseApplications[index % baseApplications.length].applicant} ${index + 1}`,
-}));
-
-const statusStyles = {
-  Approved: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30",
-  Pending: "bg-amber-500/15 text-amber-300 border border-amber-500/30",
-  Review: "bg-sky-500/15 text-sky-300 border border-sky-500/30",
-};
+import toast from "react-hot-toast";
+import api from "../../api";
 
 const Applications = () => {
-  const [records, setRecords] = useState(applications);
+  const [records, setRecords] = useState([]);
+  const [availableServices, setAvailableServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [viewingRecord, setViewingRecord] = useState(null);
+  const [applicationForm, setApplicationForm] = useState({
+    applicant_name: "",
+    mobile: "",
+    email: "",
+    service_id: "",
+    center_name: "",
+    notes: "",
+  });
   const [query, setQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
   const [serviceFilter, setServiceFilter] = useState("All");
   const [centerFilter, setCenterFilter] = useState("All");
@@ -84,15 +49,54 @@ const Applications = () => {
     [viewMode],
   );
 
+  const loadData = async () => {
+    try {
+      const [applicationResponse, serviceResponse] = await Promise.all([
+        api.get("/applications"),
+        api.get("/services"),
+      ]);
+      setRecords((applicationResponse.data.data || []).map((application) => ({
+        ...application,
+        applicant: application.applicant_name,
+        service: application.service_name,
+        center: application.center_name || "—",
+        updatedAt: application.updated_at,
+      })));
+      setAvailableServices((serviceResponse.data.data || []).filter((service) => service.status === "Active"));
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to load applications.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([api.get("/applications"), api.get("/services")])
+      .then(([applicationResponse, serviceResponse]) => {
+        if (!active) return;
+        setRecords((applicationResponse.data.data || []).map((application) => ({
+          ...application,
+          applicant: application.applicant_name,
+          service: application.service_name,
+          center: application.center_name || "—",
+          updatedAt: application.updated_at,
+        })));
+        setAvailableServices((serviceResponse.data.data || []).filter((service) => service.status === "Active"));
+      })
+      .catch((error) => {
+        if (active) toast.error(error.response?.data?.message || "Unable to load applications.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const services = [...new Set(records.map((record) => record.service))];
   const centers = [...new Set(records.map((record) => record.center))];
-  const hasFilters = Boolean(
-    query ||
-    statusFilter !== "All" ||
-    serviceFilter !== "All" ||
-    centerFilter !== "All",
-  );
-
   const filteredRecords = useMemo(
     () =>
       records.filter((record) => {
@@ -108,11 +112,6 @@ const Applications = () => {
     [records, query, statusFilter, serviceFilter, centerFilter],
   );
 
-  useEffect(
-    () => setPage(1),
-    [query, statusFilter, serviceFilter, centerFilter, pageSize],
-  );
-
   const pageCount = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageRecords = filteredRecords.slice(
@@ -124,20 +123,48 @@ const Applications = () => {
     : 0;
   const rangeEnd = Math.min(currentPage * pageSize, filteredRecords.length);
 
-  const clearFilters = () => {
-    setQuery("");
-    setStatusFilter("All");
-    setServiceFilter("All");
-    setCenterFilter("All");
+  const addApplication = async (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    try {
+      await api.post("/applications", {
+        ...applicationForm,
+        service_id: Number(applicationForm.service_id),
+      });
+      toast.success("Application added successfully.");
+      setIsAddOpen(false);
+      setApplicationForm({
+        applicant_name: "",
+        mobile: "",
+        email: "",
+        service_id: "",
+        center_name: "",
+        notes: "",
+      });
+      await loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to add application.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const deleteRecord = (id) =>
-    setRecords((current) => current.filter((record) => record.id !== id));
+  const deleteRecord = async (record) => {
+    if (!window.confirm(`Delete application for ${record.applicant}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/applications/${record.id}`);
+      setRecords((current) => current.filter((item) => item.id !== record.id));
+      toast.success("Application deleted successfully.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to delete application.");
+    }
+  };
 
   const renderActions = (record) => (
     <div className="flex items-center justify-end gap-1">
       <button
         type="button"
+        onClick={() => setViewingRecord(record)}
         className="rounded-md p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
         title={`View ${record.applicant}`}
       >
@@ -145,14 +172,7 @@ const Applications = () => {
       </button>
       <button
         type="button"
-        className="rounded-md p-2 text-white/45 transition hover:bg-white/10 hover:text-sky-300"
-        title={`Edit ${record.applicant}`}
-      >
-        <Pencil size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={() => deleteRecord(record.id)}
+        onClick={() => deleteRecord(record)}
         className="rounded-md p-2 text-white/45 transition hover:bg-white/10 hover:text-red-300"
         title={`Delete ${record.applicant}`}
       >
@@ -181,11 +201,10 @@ const Applications = () => {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { label: 'Total Applications', value: '1,248', icon: FileText,    iconBg: 'bg-blue-500',   pct: { val: '18.6', up: true  } },
-          { label: 'Approved',           value: '842',   icon: CheckCircle2, iconBg: 'bg-emerald-500',  pct: { val: '12.1',  up: true  } },
-          { label: 'Pending',            value: '162',   icon: Clock3,      iconBg: 'bg-amber-500',  pct: { val: '4.8',  up: false  }, invertColor: true },
+          { label: "Total Applications", value: records.length, icon: FileText, iconBg: "bg-blue-500" },
+          { label: "Approved", value: records.filter((record) => record.status === "Approved").length, icon: CheckCircle2, iconBg: "bg-emerald-500" },
+          { label: "Pending", value: records.filter((record) => record.status === "Pending").length, icon: Clock3, iconBg: "bg-amber-500" },
         ].map((s) => {
-          const isPositive = s.invertColor ? !s.pct.up : s.pct.up;
           return (
             <div key={s.label} className="flex items-center gap-4 rounded-xl border border-gray-800 bg-[#1a1c23] p-4">
               <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${s.iconBg}`}>
@@ -194,10 +213,6 @@ const Applications = () => {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-gray-400">{s.label}</p>
                 <p className="truncate text-3xl font-bold leading-tight text-white">{s.value}</p>
-                <p className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                  {s.pct.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                  <span>{s.pct.val}% from last month</span>
-                </p>
               </div>
             </div>
           );
@@ -210,7 +225,10 @@ const Applications = () => {
             <Search size={20} className="shrink-0 text-white/45" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setQuery(event.target.value);
+              }}
               placeholder="Search..."
               className="h-12 w-full bg-transparent text-base text-white outline-none placeholder:text-white/35"
             />
@@ -219,7 +237,10 @@ const Applications = () => {
           <div className="ml-auto flex items-center gap-3 md:ml-0">
             <select
               value={serviceFilter}
-              onChange={(event) => setServiceFilter(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setServiceFilter(event.target.value);
+              }}
               className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
             >
               <option>All</option>
@@ -229,7 +250,10 @@ const Applications = () => {
             </select>
             <select
               value={centerFilter}
-              onChange={(event) => setCenterFilter(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setCenterFilter(event.target.value);
+              }}
               className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
             >
               <option>All</option>
@@ -240,7 +264,10 @@ const Applications = () => {
 
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setStatusFilter(event.target.value);
+              }}
               className="h-10 w-full rounded-lg border border-white/10 bg-[#0d0d12] px-3 text-sm text-white"
             >
               <option>All</option>
@@ -277,6 +304,13 @@ const Applications = () => {
 
             <button
               type="button"
+              onClick={() => {
+                setApplicationForm((current) => ({
+                  ...current,
+                  service_id: availableServices[0] ? String(availableServices[0].id) : "",
+                }));
+                setIsAddOpen(true);
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#f8740e] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#ff8a2d]"
             >
               <Plus size={16} />
@@ -402,9 +436,13 @@ const Applications = () => {
           </div>
         )}
 
-        {pageRecords.length === 0 && (
+        {loading && (
+          <p className="px-5 py-12 text-center text-sm text-white/45">Loading applications…</p>
+        )}
+
+        {!loading && pageRecords.length === 0 && (
           <p className="px-5 py-12 text-center text-sm text-white/45">
-            No applications match your search or filters.
+            {records.length ? "No applications match your search or filters." : "No applications yet. Select Add New Application to create one."}
           </p>
         )}
 
@@ -417,7 +455,10 @@ const Applications = () => {
               Rows per page
               <select
                 value={pageSize}
-                onChange={(event) => setPageSize(Number(event.target.value))}
+                onChange={(event) => {
+                  setPage(1);
+                  setPageSize(Number(event.target.value));
+                }}
                 className="rounded-md border border-white/10 bg-[#0d0d12] px-2 py-1 text-white"
               >
                 <option value={10}>10</option>
@@ -458,6 +499,67 @@ const Applications = () => {
                 <ChevronRight size={16} />
               </button>
             </div>
+            {isAddOpen && createPortal(
+              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4">
+                <form onSubmit={addApplication} className="my-8 w-full max-w-xl space-y-4 rounded-2xl border border-white/10 bg-[#15171e] p-6 shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold text-white">Add New Application</h2>
+                      <p className="mt-1 text-sm text-white/50">Enter applicant and service details.</p>
+                    </div>
+                    <button type="button" onClick={() => setIsAddOpen(false)} className="rounded-md p-2 text-white/60 hover:bg-white/10" aria-label="Close form"><X size={20} /></button>
+                  </div>
+                  <label className="block text-sm text-gray-300">Applicant Name *
+                    <input required minLength={2} maxLength={150} name="applicant_name" value={applicationForm.applicant_name} onChange={(event) => setApplicationForm({ ...applicationForm, applicant_name: event.target.value })} className="mt-1.5 w-full rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500" />
+                  </label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm text-gray-300">Mobile Number
+                      <input type="tel" name="mobile" value={applicationForm.mobile} onChange={(event) => setApplicationForm({ ...applicationForm, mobile: event.target.value })} className="mt-1.5 w-full rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500" placeholder="Optional" />
+                    </label>
+                    <label className="block text-sm text-gray-300">Email Address
+                      <input type="email" name="email" value={applicationForm.email} onChange={(event) => setApplicationForm({ ...applicationForm, email: event.target.value })} className="mt-1.5 w-full rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500" placeholder="Optional" />
+                    </label>
+                  </div>
+                  <label className="block text-sm text-gray-300">Service *
+                    <select required name="service_id" value={applicationForm.service_id} onChange={(event) => setApplicationForm({ ...applicationForm, service_id: event.target.value })} className="mt-1.5 w-full rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500">
+                      <option value="">Select a service</option>
+                      {availableServices.map((service) => <option key={service.id} value={service.id}>{service.service_name} ({service.service_code})</option>)}
+                    </select>
+                    {!availableServices.length && <span className="mt-1 block text-xs text-amber-400">There are no active services available.</span>}
+                  </label>
+                  <label className="block text-sm text-gray-300">Center
+                    <input maxLength={150} name="center_name" value={applicationForm.center_name} onChange={(event) => setApplicationForm({ ...applicationForm, center_name: event.target.value })} className="mt-1.5 w-full rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500" placeholder="Optional" />
+                  </label>
+                  <label className="block text-sm text-gray-300">Notes
+                    <textarea maxLength={2000} rows={3} name="notes" value={applicationForm.notes} onChange={(event) => setApplicationForm({ ...applicationForm, notes: event.target.value })} className="mt-1.5 w-full resize-y rounded-lg border border-gray-700 bg-[#0d0d12] px-3 py-2.5 text-white outline-none focus:border-orange-500" placeholder="Optional application notes" />
+                  </label>
+                  <div className="flex justify-end gap-3 border-t border-white/10 pt-4">
+                    <button type="button" onClick={() => setIsAddOpen(false)} className="rounded-lg border border-gray-700 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5">Cancel</button>
+                    <button type="submit" disabled={isSaving || !availableServices.length} className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? "Saving…" : "Create Application"}</button>
+                  </div>
+                </form>
+              </div>,
+              document.body,
+            )}
+            {viewingRecord && createPortal(
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <section className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#15171e] p-6 shadow-2xl">
+                  <div className="flex items-start justify-between">
+                    <div><h2 className="text-xl font-semibold text-white">{viewingRecord.applicant}</h2><p className="mt-1 text-sm text-white/50">Application #{viewingRecord.id}</p></div>
+                    <button type="button" onClick={() => setViewingRecord(null)} className="rounded-md p-2 text-white/60 hover:bg-white/10" aria-label="Close application details"><X size={20} /></button>
+                  </div>
+                  <dl className="mt-5 space-y-3 text-sm">
+                    <div className="flex justify-between gap-4"><dt className="text-white/50">Service</dt><dd className="text-right text-white">{viewingRecord.service}</dd></div>
+                    <div className="flex justify-between gap-4"><dt className="text-white/50">Center</dt><dd className="text-right text-white">{viewingRecord.center}</dd></div>
+                    <div className="flex justify-between gap-4"><dt className="text-white/50">Mobile</dt><dd className="text-right text-white">{viewingRecord.mobile || "—"}</dd></div>
+                    <div className="flex justify-between gap-4"><dt className="text-white/50">Email</dt><dd className="text-right text-white">{viewingRecord.email || "—"}</dd></div>
+                    <div className="flex justify-between gap-4"><dt className="text-white/50">Status</dt><dd className="text-right text-white">{viewingRecord.status}</dd></div>
+                    <div><dt className="text-white/50">Notes</dt><dd className="mt-1 whitespace-pre-wrap text-white">{viewingRecord.notes || "—"}</dd></div>
+                  </dl>
+                </section>
+              </div>,
+              document.body,
+            )}
           </div>
         </div>
       </div>
