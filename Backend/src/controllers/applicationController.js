@@ -376,6 +376,86 @@ exports.createApplication = async (req, res) => {
   }
 };
 
+exports.trackApplication = async (req, res) => {
+  const applicationNumber = String(req.body.application_number || '').trim().toUpperCase();
+  const mobile = String(req.body.mobile || '').trim();
+  const serviceId = req.body.service_id ? Number(req.body.service_id) : null;
+  const applicationDate = String(req.body.application_date || '').trim();
+
+  if (!/^APP-[A-Z0-9-]{1,35}$/.test(applicationNumber)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid application number.' });
+  }
+  if (!/^[0-9+() -]{7,20}$/.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Enter the mobile number used for the application.' });
+  }
+  if (serviceId !== null && (!Number.isInteger(serviceId) || serviceId < 1)) {
+    return res.status(400).json({ success: false, message: 'Select a valid service.' });
+  }
+  if (applicationDate) {
+    const parsedDate = new Date(`${applicationDate}T00:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(applicationDate) ||
+        Number.isNaN(parsedDate.getTime()) ||
+        parsedDate.toISOString().slice(0, 10) !== applicationDate) {
+      return res.status(400).json({ success: false, message: 'Enter a valid application date.' });
+    }
+  }
+
+  try {
+    const db = getDB();
+    const conditions = ['a.application_number = ?', 'LOWER(TRIM(a.mobile)) = LOWER(?)'];
+    const parameters = [applicationNumber, mobile];
+    if (serviceId !== null) {
+      conditions.push('a.service_id = ?');
+      parameters.push(serviceId);
+    }
+    if (applicationDate) {
+      conditions.push('DATE(a.created_at) = ?');
+      parameters.push(applicationDate);
+    }
+
+    const [applications] = await db.execute(
+      `SELECT a.id, a.application_number, a.status, a.created_at, a.updated_at, s.service_name
+       FROM applications a
+       INNER JOIN services s ON s.id = a.service_id
+       WHERE ${conditions.join(' AND ')}
+       LIMIT 1`,
+      parameters
+    );
+    if (!applications.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'We could not find an application matching those details. Check your application number, mobile number and service.',
+      });
+    }
+
+    const application = applications[0];
+    const [events] = await db.execute(
+      `SELECT new_status AS status, created_at
+       FROM application_audit
+       WHERE application_id = ? AND new_status IS NOT NULL
+       ORDER BY created_at ASC, id ASC`,
+      [application.id]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        application_number: application.application_number,
+        service_name: application.service_name,
+        status: application.status,
+        submitted_at: application.created_at,
+        updated_at: application.updated_at,
+        timeline: events.length
+          ? events
+          : [{ status: application.status, created_at: application.created_at }],
+      },
+    });
+  } catch (error) {
+    console.error('Error tracking application:', error);
+    res.status(500).json({ success: false, message: 'Unable to check application status right now. Please try again later.' });
+  }
+};
+
 exports.updateWorkflow = async (req, res) => {
   if (!positiveId(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid application reference.' });
   const db = getDB();
