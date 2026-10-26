@@ -1,71 +1,128 @@
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchReviews } from "../Redux/reviewSlice";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import { useEffect, useState } from "react";
+import { MessageSquareQuote, Star, UserRound } from "lucide-react";
+import { Autoplay, Pagination } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import PageContainer from "../CommonComponents/PageContainer";
+import "swiper/css";
+import "swiper/css/pagination";
 
 const Testimonial = () => {
-  const dispatch = useDispatch();
-  const { items: reviews, loading, error } = useSelector((state) => state.reviews);
+  const [reviews, setReviews] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    dispatch(fetchReviews());
-  }, [dispatch]);
+    const controller = new AbortController();
 
-  if (loading) return <p className="text-center">Loading testimonials...</p>;
-  if (error) return <p className="text-center text-red-500">Error: {error}</p>;
+    fetch("/Review.json", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Could not load reviews (${response.status}).`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          throw new Error("Review data must be a JSON array.");
+        }
+        setReviews(data);
+      })
+      .catch((fetchError) => {
+        if (fetchError.name !== "AbortError") {
+          setError(fetchError.message || "Unable to load reviews.");
+        }
+      });
 
-  const settings = {
-    dots: false,
-    infinite: true,
-    autoplay: true,
-    autoplaySpeed: 5000,
-    speed: 600,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: false,
-  };
+    return () => controller.abort();
+  }, []);
 
   return (
-    <section className="relative py-20 bg-gray-50 overflow-hidden">
-      <div
-        className="absolute hidden md:block inset-0 bg-no-repeat bg-center bg-contain pointer-events-none animate-bounce-bg"
-        style={{ backgroundImage: "url('/images/testimonialbackground.png')" }}
-      ></div>
+    <section
+      aria-labelledby="community-reviews-heading"
+      className="border-t border-primary/20 bg-[#080b0e] py-14 text-white sm:py-20"
+    >
+      <PageContainer>
+        <div className="text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/40 bg-primary/10 text-primary">
+            <MessageSquareQuote size={27} />
+          </span>
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-primary">
+            Visitor feedback
+          </p>
+          <h2
+            id="community-reviews-heading"
+            className="mt-2 text-3xl font-black sm:text-4xl"
+          >
+            Reviews & Experiences
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-xs leading-5 text-amber-200/80">
+            Sample review content for layout preview only. Replace these entries
+            with genuine customer feedback before publishing.
+          </p>
+        </div>
 
-      <img
-        src="/images/testimonialquote.png"
-        alt="quote background"
-        className="absolute opacity-100 w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
-      />
-
-      {/* Content */}
-      <div className="relative max-w-4xl mx-auto text-center z-20 px-4 sm:px-6">
-        <h5 className="text-primary uppercase tracking-widest text-sm sm:text-base">Testimonials</h5>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-10">The Trust From Clients</h2>
-
-        <Slider {...settings}>
-          {reviews.map((review, idx) => (
-            <div key={idx} className="px-4 sm:px-6">
-              <p className="text-base  text-justify  md:text-center sm:text-lg mb-6 relative z-10 leading-relaxed">
-                {review.quote}
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 relative z-10">
-                <img
-                  src={review.image}
-                  alt={review.name}
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-purple-500"
-                />
-                <div className="text-center sm:text-left">
-                  <h4 className="font-semibold">{review.name}</h4>
-                  <p className="text-sm text-gray-500">{review.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </Slider>
-      </div>
+        {error ? (
+          <p role="alert" className="mt-8 text-center text-sm text-red-400">
+            {error}
+          </p>
+        ) : reviews.length === 0 ? (
+          <p className="mt-8 text-center text-sm text-slate-400">
+            Loading reviews...
+          </p>
+        ) : (
+          <Swiper
+            modules={[Autoplay, Pagination]}
+            loop={reviews.length > 1}
+            autoplay={{
+              delay: 4500,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            pagination={{ clickable: true }}
+            spaceBetween={16}
+            breakpoints={{
+              0: { slidesPerView: 1 },
+              640: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
+            }}
+            className="mt-8 pb-12 [&_.swiper-pagination-bullet]:!bg-white/60 [&_.swiper-pagination-bullet-active]:!bg-primary"
+          >
+            {reviews.map((review) => (
+              <SwiperSlide key={review.id}>
+                <article className="h-full min-h-52 rounded-2xl border border-white/10 bg-[#101419] p-5 text-left shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <MessageSquareQuote size={22} className="text-primary" />
+                    <div
+                      className="flex gap-0.5 text-primary"
+                      aria-label={`${review.rating} out of 5 stars`}
+                    >
+                      {Array.from({ length: review.rating }, (_, index) => (
+                        <Star key={index} size={14} fill="currentColor" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-200">
+                    “{review.quote}”
+                  </p>
+                  <div className="mt-5 border-t border-white/10 pt-4">
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/50 bg-gradient-to-br from-primary/30 to-[#17110c] text-primary"
+                      >
+                        <UserRound size={21} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-white">{review.name}</p>
+                        <p className="mt-1 text-xs text-slate-400">{review.service}</p>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        )}
+      </PageContainer>
     </section>
   );
 };

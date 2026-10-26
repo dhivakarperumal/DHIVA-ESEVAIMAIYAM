@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Sample Visitor 01",
+    "service": "Certificate assistance",
+    "rating": 5,
+    "quote": "The team explained the certificate application steps clearly."
+  },
+  {
+    "id": 2,
+    "name": "Sample Visitor 02",
+    "service": "Online application",
+    "rating": 5,
+    "quote": "I received helpful guidance while preparing my online application."
+  },
+  {
+    "id": 3,
+    "name": "Sample Visitor 03",
+    "service": "Document support",
+    "rating": 5,
+    "quote": "The document requirements were explained in a simple way."
+  },
+  {
+    "id": 4,
+    "name": "Sample Visitor 04",
+    "service": "Printing and scanning",
+    "rating": 5,
+    "quote": "Printing and scanning support was convenient for my request."
+  },
+  {
+    "id": 5,
+    "name": "Sample Visitor 05",
+    "service": "Government service",
+    "rating": 5,
+    "quote": "The staff helped me understand which service I needed."
+  },
+  {
+    "id": 6,
+    "name": "Sample Visitor 06",
+    "service": "Application guidance",
+    "rating": 5,
+    "quote": "I was guided through the application process one step at a time."
+  },
+  {
+    "id": 7,
+    "name": "Sample Visitor 07",
+    "service": "Certificate assistance",
+    "rating": 5,
+    "quote": "The certificate application requirements were made easy to follow."
+  },
+  {
+    "id": 8,
+    "name": "Sample Visitor 08",
+    "service": "Online services",
+    "rating": 5,
+    "quote": "The team provided clear support with the online service."
+  },
+  {
+    "id": 9,
+    "name": "Sample Visitor 09",
+    "service": "Document processing",
+    "rating": 5,
+    "quote": "I got useful help organizing the documents for my request."
+  },
+  {
+    "id": 10,
+    "name": "Sample Visitor 10",
+    "service": "Customer support",
+    "rating": 5,
+    "quote": "My questions were answered clearly and politely."
+  }
+]

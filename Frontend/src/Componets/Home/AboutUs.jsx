@@ -1,104 +1,151 @@
-import React, { useEffect } from "react";
-import about from "/images/aboutvideo.jpg"; 
-import { GiFamilyHouse, GiProgression } from "react-icons/gi";
-import Button from "../Components/Button";
-import { BsArrowRight } from "react-icons/bs";
+import { ArrowRight, Check, ClipboardList, FileText, Headset, Search, ShieldCheck, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import PageContainer from "../CommonComponents/PageContainer";
 
-// ✅ Import AOS
-import AOS from "aos";
-import "aos/dist/aos.css";
+const benefits = [
+  "Trusted, professional service",
+  "Experienced staff",
+  "Fast and hassle-free process",
+  "Affordable service charges",
+  "Secure document handling",
+  "Friendly customer support",
+];
+
+const serviceSteps = [
+  {
+    number: "01",
+    title: "Choose a Service",
+    description: "Tell us which certificate or government service you need.",
+    Icon: ClipboardList,
+  },
+  {
+    number: "02",
+    title: "Submit Documents",
+    description: "Share the required documents online or at our centre.",
+    Icon: FileText,
+  },
+  {
+    number: "03",
+    title: "Track Your Request",
+    description: "Get guidance and updates as your request progresses.",
+    Icon: Search,
+  },
+];
+
+const highlights = [
+  { value: "5000+", label: "Applications processed", Icon: ClipboardList },
+  { value: "50+", label: "Services available", Icon: Users },
+  { value: "100%", label: "Secure & reliable", Icon: ShieldCheck },
+  { value: "24/7", label: "Customer support", Icon: Headset },
+];
 
 const AboutUs = () => {
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      once: true,
-    });
-  }, []);
-
   return (
-    <section className="relative bg-gradient-to-b from-gray-50 to-white px-6 py-12 md:py-24">
-      {/* Mobile Heading */}
-      <h2 
-        className="block md:hidden text-3xl text-center font-bold text-gray-900 mb-8"
-        data-aos="fade-up"
-      >
-        About Us
-      </h2>
-
-      <div className="w-full max-w-7xl mx-auto px-2 lg:px-16 grid md:grid-cols-2 gap-12 items-center">
-
-        {/* Left Content */}
-        <div className="order-2 md:order-1">
-          <h2 
-            className="hidden md:block text-4xl font-bold text-gray-900 mb-6"
-            data-aos="flip-right"
-          >
-            About Us
-          </h2>
-          <p 
-            className="text-gray-600 leading-relaxed mb-6 text-justify"
-            data-aos="flip-right" 
-            data-aos-delay="200"
-          >
-           At Q-Techx Solutions, we don’t just build software — we create intelligent digital experiences that transform the way businesses operate. Whether you're a startup or an enterprise, we deliver tailor-made IT solutions that accelerate growth, optimize performance, and future-proof your business. Backed by a team of innovative thinkers and skilled developers, we ensure 24/7 support, rapid delivery, and uncompromising quality across every project.
-          </p>
-
-          {/* Stats */}
-          <div 
-            className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-8"
-            data-aos="flip-left"
-            data-aos-delay="400"
-          >
-            <div className="flex items-center gap-3">
-              <GiFamilyHouse size={40} className="text-primary/80"/>
-              <div>
-                <h3 className="text-xl font-bold">5+ Years</h3>
-                <p className="text-sm text-gray-500">Industry Experience</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <GiProgression size={40} className="text-primary/80" />
-              <div>
-                <h3 className="text-xl font-bold">21+ Projects</h3>
-                <p className="text-sm text-gray-500">Completed</p>
-              </div>
-            </div>
+    <section id="about-us" className="overflow-hidden bg-[#080b0e] py-14 text-white sm:py-20">
+      <PageContainer>
+        <div className="grid items-center gap-8 lg:grid-cols-[0.95fr_1.25fr_0.8fr] lg:gap-7">
+          <div className="overflow-hidden rounded-2xl border border-primary/30 shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
+            <img
+              src="/Hero/Modern%20DHIVA%20E-Sevai%20Reception%20Center.png"
+              alt="Modern Dhiva E-Sevai Maiyam service centre"
+              loading="lazy"
+              className="h-64 w-full object-cover sm:h-80 lg:h-[330px]"
+            />
           </div>
 
-          <div data-aos="flip-left" data-aos-delay="600" className="flex  items-center">
-            <Button>Read More  <BsArrowRight/></Button>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+              About Dhiva E-Sevai Maiyam
+            </p>
+            <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">
+              People <span className="text-primary">·</span> Services{" "}
+              <span className="text-primary">·</span> Progress
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
+              DHIVA E-SEVAI MAIYAM is a trusted digital service centre in Tamil
+              Nadu, providing help with government services, online
+              applications, document processing, printing and scanning. Our
+              goal is to make every service simple, transparent and accessible
+              to our community.
+            </p>
+            <Link
+              to="/contact"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(248,116,14,0.25)] transition hover:-translate-y-0.5 hover:bg-orange-500"
+            >
+              Know More About Us <ArrowRight size={17} />
+            </Link>
+          </div>
+
+          <ul className="rounded-2xl border border-primary/30 bg-gradient-to-br from-[#17120e] to-[#0b0d10] p-5 sm:p-6">
+            {benefits.map((benefit) => (
+              <li key={benefit} className="flex items-center gap-3 py-2.5 text-sm text-slate-200">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                  <Check size={14} strokeWidth={3} />
+                </span>
+                {benefit}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-12 grid grid-cols-2 overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-r from-orange-600 via-primary to-orange-500 sm:grid-cols-4">
+          {highlights.map(({ value, label, Icon }, index) => (
+            <div
+              key={label}
+              className={`flex items-center justify-center gap-3 px-3 py-5 text-white sm:py-6 ${
+                index > 0 ? "border-l border-white/20" : ""
+              }`}
+            >
+              <Icon size={26} className="hidden shrink-0 sm:block" />
+              <div>
+                <p className="text-xl font-black sm:text-2xl">{value}</p>
+                <p className="mt-1 text-[10px] font-medium leading-4 text-white/90 sm:text-xs">
+                  {label}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-14 grid gap-8 lg:grid-cols-[0.8fr_2fr] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+              How it works
+            </p>
+            <h3 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">
+              Simple steps to
+              <span className="block text-primary">get your service</span>
+            </h3>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">
+              Apply for the service you need with clear guidance from our team.
+            </p>
+            <Link
+              to="/contact"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary"
+            >
+              Get Started Now <ArrowRight size={17} />
+            </Link>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {serviceSteps.map(({ number, title, description, Icon }) => (
+              <article
+                key={number}
+                className="rounded-2xl border border-primary/30 bg-gradient-to-br from-[#15110d] to-[#0b0d10] p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-lg font-black text-white">
+                    {number}
+                  </span>
+                  <Icon size={28} className="text-white" />
+                </div>
+                <h4 className="mt-5 text-base font-bold text-white">{title}</h4>
+                <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+              </article>
+            ))}
           </div>
         </div>
-
-        {/* Right Image */}
-        <div 
-          className="relative order-1 md:order-2 w-full flex justify-center md:justify-end"
-          data-aos="flip-left"
-        >
-          {/* Decorative Circle only on md+ */}
-          <div
-            className="
-              hidden md:block
-              absolute
-              w-24 h-24
-              -right-10 bottom-6
-              bg-primary/60
-              rounded-full
-              z-0
-              animate-floating
-            "
-          ></div>
-
-          {/* Main Image */}
-          <img
-            src={about}
-            alt="About Us"
-            className="relative rounded-2xl shadow-lg w-full max-w-md md:max-w-full object-cover z-10"
-          />
-        </div>
-
-      </div>
+      </PageContainer>
     </section>
   );
 };

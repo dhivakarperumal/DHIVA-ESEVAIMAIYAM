@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { FileCheck2, Fingerprint, Landmark, Printer, Smartphone } from "lucide-react";
 import Hero from "./Hero";
+import AboutUs from "./AboutUs";
+import GovernmentServicesBanner from "./GovernmentServicesBanner";
+import WhyChooseSection from "./WhyChooseSection";
+import FaqUpdates from "./FaqUpdates";
+import Testimonial from "./Testimonial";
 
 const services = [
   { label: "Aadhaar Services", Icon: Fingerprint, color: "text-orange-400" },
@@ -36,6 +41,12 @@ const Home = () => {
           ))}
         </div>
       </section>
+
+      <AboutUs />
+      <WhyChooseSection />
+      <FaqUpdates />
+      <GovernmentServicesBanner />
+      <Testimonial />
     </main>
   );
 };
