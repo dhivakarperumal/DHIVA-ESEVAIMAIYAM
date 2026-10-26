@@ -104,6 +104,166 @@ async function initDB() {
         FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE RESTRICT
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+    const applicationColumns = [
+      ['application_number', 'VARCHAR(40) NULL'],
+      ['assigned_staff_id', 'INT NULL'],
+      ['status_reason', 'VARCHAR(1000) NULL'],
+      ['approval_remarks', 'TEXT NULL'],
+      ['approving_officer', 'VARCHAR(100) NULL'],
+      ['approved_at', 'DATETIME NULL'],
+      ['certificate_reference', 'VARCHAR(120) NULL'],
+      ['certificate_issue_date', 'DATE NULL'],
+      ['certificate_path', 'VARCHAR(500) NULL'],
+      ['external_approval_status', "VARCHAR(40) NOT NULL DEFAULT 'Not Connected'"],
+      ['completed_by', 'VARCHAR(100) NULL'],
+      ['completed_at', 'DATETIME NULL'],
+    ];
+    for (const [column, definition] of applicationColumns) {
+      const [existing] = await connection.execute(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'applications' AND COLUMN_NAME = ?`,
+        [dbConfig.database, column]
+      );
+      if (!existing.length) {
+        await connection.execute(`ALTER TABLE applications ADD COLUMN ${column} ${definition}`);
+      }
+    }
+    await connection.execute('ALTER TABLE applications MODIFY status VARCHAR(50) NOT NULL DEFAULT \'Application Submitted\'');
+    await connection.execute(
+      `UPDATE applications SET application_number = CONCAT('APP-', LPAD(id, 8, '0')) WHERE application_number IS NULL`
+    );
+    await connection.execute("UPDATE applications SET status = 'Application Submitted' WHERE status = 'Pending'");
+    const [applicationNumberIndex] = await connection.execute(
+      `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'applications' AND INDEX_NAME = 'uq_applications_number'`,
+      [dbConfig.database]
+    );
+    if (!applicationNumberIndex.length) {
+      await connection.execute('ALTER TABLE applications ADD UNIQUE KEY uq_applications_number (application_number)');
+    }
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS application_documents (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        application_id INT NOT NULL,
+        document_name VARCHAR(255) NOT NULL,
+        stored_name VARCHAR(255) NOT NULL UNIQUE,
+        original_name VARCHAR(255) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        file_size BIGINT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Submitted',
+        reviewer_remarks VARCHAR(1000) DEFAULT NULL,
+        uploaded_by VARCHAR(100) NOT NULL,
+        reviewed_by VARCHAR(100) DEFAULT NULL,
+        reviewed_at DATETIME DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_application_documents_app (application_id, status),
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS application_audit (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        application_id INT NOT NULL,
+        event_type VARCHAR(50) NOT NULL,
+        previous_status VARCHAR(50) DEFAULT NULL,
+        new_status VARCHAR(50) DEFAULT NULL,
+        details JSON DEFAULT NULL,
+        actor_id VARCHAR(100) NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_application_audit_app (application_id, created_at),
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS application_notifications (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        application_id INT NOT NULL,
+        event_type VARCHAR(50) NOT NULL,
+        channel VARCHAR(30) NOT NULL,
+        recipient VARCHAR(255) DEFAULT NULL,
+        delivery_status VARCHAR(30) NOT NULL DEFAULT 'Not Configured',
+        details VARCHAR(1000) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_application_notifications_app (application_id, created_at),
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        receipt_number VARCHAR(40) NOT NULL UNIQUE,
+        transaction_id VARCHAR(80) NOT NULL UNIQUE,
+        idempotency_key VARCHAR(80) NOT NULL UNIQUE,
+        application_id INT NOT NULL,
+        service_id INT NOT NULL,
+        application_number VARCHAR(40) NOT NULL,
+        customer_name VARCHAR(150) NOT NULL,
+        mobile VARCHAR(20) NOT NULL,
+        service_name VARCHAR(255) NOT NULL,
+        category VARCHAR(255) NOT NULL,
+        government_fee DECIMAL(10,2) NOT NULL,
+        service_charge DECIMAL(10,2) NOT NULL,
+        discount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        total_amount DECIMAL(10,2) NOT NULL,
+        amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        payment_method VARCHAR(30) NOT NULL,
+        transaction_reference VARCHAR(120) DEFAULT NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'Pending',
+        payment_date DATETIME NOT NULL,
+        notes TEXT DEFAULT NULL,
+        created_by VARCHAR(100) NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_payments_date_status (payment_date, status),
+        INDEX idx_payments_application (application_id),
+        INDEX idx_payments_service_category (category),
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE RESTRICT,
+        FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    const [amountPaidColumn] = await connection.execute(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'payments' AND COLUMN_NAME = 'amount_paid'`,
+      [dbConfig.database]
+    );
+    if (!amountPaidColumn.length) {
+      await connection.execute('ALTER TABLE payments ADD COLUMN amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER total_amount');
+    }
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS payment_audit (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        payment_id BIGINT NOT NULL,
+        event_type VARCHAR(40) NOT NULL,
+        previous_status VARCHAR(30) DEFAULT NULL,
+        new_status VARCHAR(30) DEFAULT NULL,
+        details JSON DEFAULT NULL,
+        actor_id VARCHAR(100) NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_payment_audit_payment (payment_id, created_at),
+        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS payment_refunds (
+        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        payment_id BIGINT NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        reason VARCHAR(500) NOT NULL,
+        reference_number VARCHAR(120) DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+        requested_by VARCHAR(100) NOT NULL,
+        confirmed_by VARCHAR(100) DEFAULT NULL,
+        refund_date DATETIME DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_payment_refunds_payment (payment_id, status),
+        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE RESTRICT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
 
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS service_charges (
