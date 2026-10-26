@@ -22,6 +22,7 @@ const pageInfo = {
   "/admin/equipment-management":    { title: "Equipment Management",   icon: MonitorSmartphone },
   "/admin/audit-logs":              { title: "Audit Logs",             icon: FileText },
   "/admin/settings":                { title: "Settings",               icon: Settings },
+  "/admin/settings/profile":        { title: "Profile Settings",       icon: User },
   "/admin":                         { title: "Dashboard",              icon: LayoutDashboard },
 };
 

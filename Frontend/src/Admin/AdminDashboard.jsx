@@ -30,7 +30,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen space-y-4 sm:space-y-6 py-4 sm:p-6 text-white">
+    <div className="min-h-screen space-y-4 sm:space-y-6 py-4 sm:p-2 text-white">
       <div>
         <h1 className="text-xl font-bold sm:text-2xl">Vanakkam, <span className="text-[#f8740e]">{name}! 👋</span></h1>
         <p className="mt-1 text-sm text-white/60 sm:text-base">Welcome to E-Sevai Maiyam Admin Dashboard</p>

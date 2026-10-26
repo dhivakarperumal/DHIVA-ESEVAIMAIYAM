@@ -280,7 +280,7 @@ export default function ServiceChargesPage() {
 
   /* ── render ── */
   return (
-    <div className="flex flex-col gap-6 p-2 text-white sm:p-4">
+    <div className="flex flex-col gap-6 p-2 text-white sm:p-2">
 
       {/* ── header ── */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ChevronDown, Eye, FileText, Filter, LayoutGrid, List,
-  Pencil, Plus, RefreshCcw, Search, Trash2, X,
+  ExternalLink, Pencil, Plus, RefreshCcw, Search, Trash2, X,
   Layers, CheckCircle2, XCircle, CalendarDays,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,15 @@ const getCategoryColor = (category) => {
 };
 
 const formatAmount = (value) => `₹ ${Number(value || 0).toFixed(2)}`;
+const getApplicationUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+};
 
 /* ── shared select ── */
 function Select({ value, onChange, children }) {
@@ -190,7 +199,7 @@ export default function ServiceManagement() {
 
   /* ── render ── */
   return (
-    <div className="flex flex-col gap-6 p-2 text-white sm:p-4">
+    <div className="flex flex-col gap-6 p-2 text-white sm:p-2">
 
       {/* header */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -299,15 +308,16 @@ export default function ServiceManagement() {
                   <th className="px-4 py-4 font-medium">Category</th>
                   <th className="px-4 py-4 font-medium">Total Amount</th>
                   <th className="px-4 py-4 font-medium">Status</th>
+                  <th className="px-4 py-4 font-medium">Application Link</th>
                   <th className="px-4 py-4 text-center font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td colSpan="8" className="px-4 py-16 text-center text-sm text-gray-400">Loading services...</td></tr>
+                  <tr><td colSpan="9" className="px-4 py-16 text-center text-sm text-gray-400">Loading services...</td></tr>
                 )}
                 {!loading && filteredServices.length === 0 && (
-                  <tr><td colSpan="8" className="px-4 py-16 text-center text-sm text-gray-400">No services found.</td></tr>
+                  <tr><td colSpan="9" className="px-4 py-16 text-center text-sm text-gray-400">No services found.</td></tr>
                 )}
                 {!loading && filteredServices.map((service, i) => (
                   <tr key={service.id} className="border-b border-gray-800/60 hover:bg-white/[.02] transition-colors">
@@ -335,6 +345,14 @@ export default function ServiceManagement() {
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-orange-400">{formatAmount(service.total_amount)}</td>
                     <td className="px-4 py-3"><StatusBadge status={service.status} /></td>
+                    <td className="px-4 py-3">
+                      {getApplicationUrl(service.portal_url) ? (
+                        <a href={getApplicationUrl(service.portal_url)} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-orange-400 hover:text-orange-300">
+                          Apply <ExternalLink size={14} />
+                        </a>
+                      ) : <span className="text-sm text-gray-600">-</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-1">
                         <button onClick={() => setSelected(service)} title="View service"
@@ -434,6 +452,13 @@ export default function ServiceManagement() {
                 )}
               </div>
 
+              {getApplicationUrl(service.portal_url) && (
+                <a href={getApplicationUrl(service.portal_url)} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 py-2 text-sm font-medium text-orange-400 hover:bg-orange-500/10">
+                  Apply Now <ExternalLink size={15} />
+                </a>
+              )}
+
               {/* actions */}
               <div className="flex gap-2 border-t border-gray-800 pt-3 mt-auto">
                 <button onClick={() => setSelected(service)}
@@ -496,7 +521,13 @@ export default function ServiceManagement() {
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex justify-end">
+            <div className="mt-5 flex justify-end gap-3">
+              {getApplicationUrl(selected.portal_url) && (
+                <a href={getApplicationUrl(selected.portal_url)} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-orange-500/30 px-4 py-2 text-sm font-medium text-orange-400 hover:bg-orange-500/10">
+                  Apply Now <ExternalLink size={15} />
+                </a>
+              )}
               <button onClick={() => navigate(`/admin/service-management/edit/${selected.id}`)}
                 className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors">
                 <Pencil size={16} /> Edit service

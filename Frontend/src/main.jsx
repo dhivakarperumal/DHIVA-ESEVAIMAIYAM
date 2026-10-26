@@ -29,6 +29,8 @@ import EquipmentManagement from './Admin/EquipmentManagement.jsx'
 import Certificates from './Admin/Certificates.jsx'
 import Payments from './Admin/Payments.jsx'
 import Reports from './Admin/Reports.jsx'
+import ProfileSettings from './Admin/ProfileSettings.jsx'
+import AdminSettings from './Admin/AdminSettings.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
 import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
@@ -94,6 +96,14 @@ const router = createHashRouter([
           {
             path: 'reports',
             element: <Reports />,
+          },
+          {
+            path: 'settings',
+            element: <AdminSettings />,
+          },
+          {
+            path: 'settings/profile',
+            element: <ProfileSettings />,
           },
           {
             path: 'service-management/all',

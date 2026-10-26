@@ -84,9 +84,9 @@ const Login = () => {
         <div className="mt-4 flex items-center gap-3">
           <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
           <div className="leading-tight">
-            <h1 className="text-lg font-bold text-white tracking-wide">COMPANY</h1>
-            <h2 className="text-base font-bold text-white tracking-wide uppercase">MANAGEMENT</h2>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest">System</p>
+            <h1 className="text-lg font-bold text-white tracking-wide">DHIVA E-SEVAI</h1>
+            <h2 className="text-base font-bold text-white tracking-wide uppercase">MAIYAM</h2>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest">Portal</p>
           </div>
         </div>
 
@@ -97,7 +97,7 @@ const Login = () => {
               Welcome <span className="text-primary">Back!</span>
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Sign in to continue managing your company operations efficiently.
+              Sign in to access e-sevai services and manage your applications efficiently.
             </p>
           </div>
 
@@ -132,8 +132,8 @@ const Login = () => {
               <BarChart3 size={20} />
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-0.5 text-sm">Smart Management</h3>
-              <p className="text-gray-500 text-xs leading-relaxed">Powerful tools to manage your entire organization</p>
+              <h3 className="text-white font-semibold mb-0.5 text-sm">Efficient Services</h3>
+              <p className="text-gray-500 text-xs leading-relaxed">Quick and easy access to all e-sevai applications</p>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ const Login = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="admin@company.com"
+                  placeholder="admin@esevai.com"
                   className={`w-full bg-[#101215] text-white text-base border ${errors.username ? 'border-red-500' : 'border-gray-700'} rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors`}
                 />
               </div>
@@ -245,7 +245,7 @@ const Login = () => {
 
         {/* Footer Text */}
         <div className="absolute bottom-4 right-4 lg:right-8 text-[10px] text-gray-600">
-          &copy; 2025 Company Management System. All rights reserved.
+          &copy; 2025 Dhiva E-Sevai Maiyam. All rights reserved.
         </div>
       </div>
     </div>

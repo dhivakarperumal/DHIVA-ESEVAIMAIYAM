@@ -137,7 +137,7 @@ const UserManagement = () => {
   }).length;
 
   return (
-    <div className="flex flex-col gap-6 text-white p-2 sm:p-4">
+    <div className="flex flex-col gap-6 text-white p-2 sm:p-2">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

@@ -52,8 +52,8 @@ const AdminLayout = () => {
         {!isPrintPage && <Header onMenuClick={() => setSidebarOpen(true)} />}
 
         {/* Page Content */}
-        <main className={`flex-1 ${isPrintPage ? 'p-0' : 'p-3 sm:p-5 lg:p-3'} overflow-y-auto`}>
-          <div className={isPrintPage ? '' : 'glass-container'}>
+        <main className={`flex-1 ${isPrintPage ? 'p-0' : 'p-3 sm:p-5 lg:p-6'} overflow-y-auto`}>
+          <div className={isPrintPage ? '' : ''}>
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
                 <PacmanLoader color="#ef4444" size={20} />
