@@ -4,25 +4,33 @@ const { getDB } = require('../config/db');
 
 const documentDirectory = path.resolve(__dirname, '../../private/application-documents');
 const workflowStatuses = [
+  'Submitted',
   'Application Submitted',
   'Documents Under Verification',
   'Pending Additional Documents',
   'Pending Payment',
-  'Ready for Approval',
+  'Pending Approval',
   'Approved',
   'Certificate Generated',
+  'Ready for Collection',
+  'Ready for Delivery',
+  'Delivered',
   'Completed',
   'Rejected',
   'Cancelled',
 ];
 const transitions = {
+  Submitted: ['Documents Under Verification'],
   'Application Submitted': ['Documents Under Verification'],
-  'Documents Under Verification': ['Pending Additional Documents', 'Pending Payment', 'Ready for Approval'],
+  'Documents Under Verification': ['Pending Additional Documents', 'Pending Payment', 'Pending Approval'],
   'Pending Additional Documents': ['Documents Under Verification'],
-  'Pending Payment': ['Documents Under Verification', 'Ready for Approval'],
-  'Ready for Approval': [],
-  Approved: [],
-  'Certificate Generated': [],
+  'Pending Payment': ['Documents Under Verification', 'Pending Approval'],
+  'Pending Approval': ['Approved'],
+  Approved: ['Certificate Generated'],
+  'Certificate Generated': ['Ready for Collection', 'Ready for Delivery'],
+  'Ready for Collection': ['Delivered'],
+  'Ready for Delivery': ['Delivered'],
+  Delivered: ['Completed'],
   Completed: [],
   Rejected: [],
   Cancelled: [],
@@ -30,6 +38,22 @@ const transitions = {
 const terminalStatuses = new Set(['Rejected', 'Cancelled', 'Completed']);
 const actorId = (req) => req.user.user_id || req.user.email || req.user.username;
 const positiveId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
+const validDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+const currentCentreDate = () => {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date()).map(({ type, value }) => [type, value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 
 const applicationSelect = `
   SELECT a.*, s.service_name, s.service_code, s.category,
@@ -99,11 +123,54 @@ async function recordNotification(connection, application, eventType, details) {
   );
 }
 
+async function checkApprovalRequirements(connection, application) {
+  const [required] = await connection.execute(
+    `SELECT document_name FROM service_required_documents
+     WHERE service_id = ? AND status = 'Active' AND required_status = 'Required'`,
+    [application.service_id]
+  );
+  const [verified] = await connection.execute(
+    `SELECT document_name FROM application_documents
+     WHERE application_id = ? AND status = 'Verified'`,
+    [application.id]
+  );
+  const verifiedNames = new Set(verified.map((document) => document.document_name.toLowerCase()));
+  const missing = required.filter((document) => !verifiedNames.has(document.document_name.toLowerCase()));
+  if (missing.length) return `Verify required documents first: ${missing.map((document) => document.document_name).join(', ')}.`;
+
+  const [[service]] = await connection.execute('SELECT total_amount FROM services WHERE id = ?', [application.service_id]);
+  const [[payments]] = await connection.execute(
+    `SELECT COALESCE(SUM(total_amount), 0) AS total_due, COALESCE(SUM(amount_paid), 0) AS amount_paid
+     FROM payments WHERE application_id = ? AND status NOT IN ('Failed', 'Refunded')`,
+    [application.id]
+  );
+  if (Number(service.total_amount) > 0 && Number(payments.amount_paid) < Math.max(Number(service.total_amount), Number(payments.total_due))) {
+    return 'Verified full payment is required before approval.';
+  }
+  return '';
+}
+
 exports.getAllApplications = async (req, res) => {
   try {
     const db = getDB();
     const conditions = [];
     const values = [];
+    if (req.query.date_from && !validDate(req.query.date_from)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid submitted-from date.' });
+    }
+    if (req.query.date_to && !validDate(req.query.date_to)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid submitted-to date.' });
+    }
+    if (req.query.date_from && req.query.date_to && req.query.date_from > req.query.date_to) {
+      return res.status(400).json({ success: false, message: 'Submitted-from date must be on or before submitted-to date.' });
+    }
+    if (req.query.staff_id && req.query.staff_id !== 'All' && req.query.staff_id !== 'Unassigned' && !positiveId(req.query.staff_id)) {
+      return res.status(400).json({ success: false, message: 'Select a valid assigned staff filter.' });
+    }
+    const validPaymentStatuses = ['All', 'Not Required', 'Paid', 'Partially Paid', 'Pending', 'Failed', 'Refunded'];
+    if (req.query.payment_status && !validPaymentStatuses.includes(req.query.payment_status)) {
+      return res.status(400).json({ success: false, message: 'Select a valid payment status filter.' });
+    }
     const search = String(req.query.search || '').trim();
     if (search) {
       const term = `%${search}%`;
@@ -125,6 +192,30 @@ exports.getAllApplications = async (req, res) => {
     if (req.query.date_to) {
       conditions.push('a.created_at < DATE_ADD(?, INTERVAL 1 DAY)');
       values.push(`${req.query.date_to} 00:00:00`);
+    }
+    if (req.query.staff_id === 'Unassigned') {
+      conditions.push('a.assigned_staff_id IS NULL');
+    } else if (req.query.staff_id && positiveId(req.query.staff_id)) {
+      conditions.push('a.assigned_staff_id = ?');
+      values.push(Number(req.query.staff_id));
+    }
+    if (req.query.payment_status && req.query.payment_status !== 'All') {
+      const paymentStatus = String(req.query.payment_status);
+      if (paymentStatus === 'Not Required') {
+        conditions.push(`GREATEST(COALESCE((SELECT SUM(p.total_amount) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0), COALESCE(s.total_amount, 0)) = 0`);
+      } else if (paymentStatus === 'Paid') {
+        conditions.push(`GREATEST(COALESCE((SELECT SUM(p.total_amount) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0), COALESCE(s.total_amount, 0)) > 0
+          AND COALESCE((SELECT SUM(p.amount_paid) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0) >= GREATEST(COALESCE((SELECT SUM(p.total_amount) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0), COALESCE(s.total_amount, 0))`);
+      } else if (paymentStatus === 'Partially Paid') {
+        conditions.push(`COALESCE((SELECT SUM(p.amount_paid) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0) > 0
+          AND COALESCE((SELECT SUM(p.amount_paid) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0) < GREATEST(COALESCE((SELECT SUM(p.total_amount) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0), COALESCE(s.total_amount, 0))`);
+      } else if (paymentStatus === 'Pending') {
+        conditions.push(`GREATEST(COALESCE((SELECT SUM(p.total_amount) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0), COALESCE(s.total_amount, 0)) > 0
+          AND COALESCE((SELECT SUM(p.amount_paid) FROM payments p WHERE p.application_id = a.id AND p.status NOT IN ('Failed', 'Refunded')), 0) = 0`);
+      } else if (paymentStatus === 'Failed' || paymentStatus === 'Refunded') {
+        conditions.push('EXISTS (SELECT 1 FROM payments p WHERE p.application_id = a.id AND p.status = ?)');
+        values.push(paymentStatus);
+      }
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -149,11 +240,17 @@ exports.getWorkflowSummary = async (_req, res) => {
   try {
     const [rows] = await getDB().execute(`
       SELECT COUNT(*) AS total_applications,
-        SUM(status IN ('Application Submitted', 'Pending', 'Documents Under Verification', 'Pending Additional Documents')) AS pending_verification,
+        SUM(status IN ('Application Submitted', 'Submitted', 'Pending', 'Documents Under Verification', 'Pending Additional Documents')) AS pending_verification,
         SUM(status = 'Approved') AS approved_applications,
         SUM(status = 'Rejected') AS rejected_applications,
         SUM(status = 'Completed') AS certificates_completed,
-        SUM(status = 'Certificate Generated' AND certificate_path IS NOT NULL) AS certificates_ready
+        SUM(status IN ('Ready for Collection', 'Ready for Delivery') AND certificate_path IS NOT NULL) AS certificates_ready,
+        SUM(status IN ('Delivered', 'Completed')) AS certificates_delivered,
+        SUM(status IN ('Submitted', 'Application Submitted', 'Documents Under Verification')) AS awaiting_document_review,
+        SUM(status = 'Pending Approval') AS awaiting_approval,
+        SUM(status = 'Approved') AS awaiting_certificate,
+        SUM(status IN ('Ready for Collection', 'Ready for Delivery')) AS awaiting_collection,
+        SUM(status = 'Delivered') AS awaiting_completion
       FROM applications
     `);
     res.json({ success: true, data: Object.fromEntries(Object.entries(rows[0]).map(([key, value]) => [key, Number(value || 0)])) });
@@ -257,12 +354,12 @@ exports.createApplication = async (req, res) => {
       await connection.beginTransaction();
       const [result] = await connection.execute(
         `INSERT INTO applications (applicant_name, mobile, email, service_id, center_name, status, notes)
-         VALUES (?, ?, ?, ?, ?, 'Application Submitted', ?)`,
+         VALUES (?, ?, ?, ?, ?, 'Submitted', ?)` ,
         [applicantName, mobile || null, email || null, serviceId, centerName || null, notes || null]
       );
       const applicationNumber = `APP-${String(result.insertId).padStart(8, '0')}`;
       await connection.execute('UPDATE applications SET application_number = ? WHERE id = ?', [applicationNumber, result.insertId]);
-      await writeAudit(connection, result.insertId, 'Application Received', null, 'Application Submitted', {}, actorId(req));
+      await writeAudit(connection, result.insertId, 'Application Received', null, 'Submitted', {}, actorId(req));
       await recordNotification(connection, { id: result.insertId, email, mobile }, 'Application Received', 'No SMS or email delivery integration is configured.');
       await connection.commit();
       const [rows] = await db.execute(`${applicationSelect} WHERE a.id = ?`, [result.insertId]);
@@ -284,23 +381,29 @@ exports.updateWorkflow = async (req, res) => {
   const db = getDB();
   const connection = await db.getConnection();
   try {
-    const { status, reason, remarks } = req.body;
+    const { status, reason, remarks, delivery_date, recipient, delivery_notes } = req.body;
     if (!workflowStatuses.includes(status)) return res.status(400).json({ success: false, message: 'Select a valid workflow status.' });
-    if (['Approved', 'Certificate Generated', 'Completed'].includes(status)) {
-      return res.status(403).json({
-        success: false,
-        message: status === 'Approved'
-          ? 'Government approval is unavailable: no authorized government officer or external approval source is configured.'
-          : 'Official certificate retrieval and completion confirmation are unavailable because no authorized government certificate source is configured.',
-      });
+    if (status === 'Certificate Generated') {
+      return res.status(400).json({ success: false, message: 'Attach the actual certificate received from its authorized source using the certificate record action.' });
     }
     const normalizedReason = String(reason || '').trim();
     const normalizedRemarks = String(remarks || '').trim();
     if (['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(status) && normalizedReason.length < 4) {
       return res.status(400).json({ success: false, message: 'A reason of at least 4 characters is required for this action.' });
     }
-    if (normalizedReason.length > 1000 || normalizedRemarks.length > 4000) {
+    const normalizedRecipient = String(recipient || '').trim();
+    const normalizedDeliveryNotes = String(delivery_notes || '').trim();
+    if (normalizedReason.length > 1000 || normalizedRemarks.length > 4000 || normalizedRecipient.length > 255 || normalizedDeliveryNotes.length > 1000) {
       return res.status(400).json({ success: false, message: 'Reason or remarks exceed the allowed length.' });
+    }
+    if (status === 'Delivered') {
+      if (!validDate(delivery_date) || !delivery_date) {
+        return res.status(400).json({ success: false, message: 'Enter a valid delivery or collection date.' });
+      }
+      if (!normalizedRecipient) return res.status(400).json({ success: false, message: 'Enter who received or collected the certificate.' });
+      if (delivery_date > currentCentreDate()) {
+        return res.status(400).json({ success: false, message: 'Delivery or collection date cannot be in the future.' });
+      }
     }
 
     await connection.beginTransaction();
@@ -314,45 +417,62 @@ exports.updateWorkflow = async (req, res) => {
       await connection.rollback();
       return res.status(409).json({ success: false, message: 'This application is already in a terminal status.' });
     }
+    if (['Approved', 'Completed'].includes(status) && !['Super Admin', 'Admin', 'Manager'].includes(req.user.role)) {
+      await connection.rollback();
+      return res.status(403).json({
+        success: false,
+        message: status === 'Approved'
+          ? 'Only an authorized manager or administrator may record an internal approval decision.'
+          : 'Only an authorized manager or administrator may mark an application completed.',
+      });
+    }
+    const allowedDecisionStatuses = new Set([
+      'Submitted', 'Application Submitted', 'Documents Under Verification',
+      'Pending Additional Documents', 'Pending Payment', 'Pending Approval',
+    ]);
+    if (status === 'Rejected' && !allowedDecisionStatuses.has(application.status)) {
+      await connection.rollback();
+      return res.status(409).json({ success: false, message: 'Applications can only be rejected before approval.' });
+    }
+    if (status === 'Cancelled' && ['Approved', 'Certificate Generated', 'Ready for Collection', 'Ready for Delivery', 'Delivered'].includes(application.status)) {
+      await connection.rollback();
+      return res.status(409).json({ success: false, message: 'An approved or issued certificate cannot be cancelled in this workflow.' });
+    }
     if (status !== 'Rejected' && status !== 'Cancelled' && !transitions[application.status]?.includes(status)) {
       await connection.rollback();
       return res.status(409).json({ success: false, message: `Cannot move an application from ${application.status} to ${status}.` });
     }
 
-    if (status === 'Ready for Approval') {
-      const [required] = await connection.execute(
-        `SELECT d.document_name FROM service_required_documents d
-         WHERE d.service_id = ? AND d.status = 'Active' AND d.required_status = 'Required'`,
-        [application.service_id]
-      );
-      const [verified] = await connection.execute(
-        `SELECT document_name FROM application_documents
-         WHERE application_id = ? AND status = 'Verified'`,
-        [application.id]
-      );
-      const verifiedNames = new Set(verified.map((document) => document.document_name.toLowerCase()));
-      const missing = required.filter((document) => !verifiedNames.has(document.document_name.toLowerCase()));
-      if (missing.length) {
+    if (['Pending Approval', 'Approved'].includes(status)) {
+      const requirementError = await checkApprovalRequirements(connection, application);
+      if (requirementError) {
         await connection.rollback();
-        return res.status(400).json({ success: false, message: `Verify required documents first: ${missing.map((document) => document.document_name).join(', ')}.` });
+        return res.status(400).json({ success: false, message: requirementError });
       }
-      const [[service]] = await connection.execute(
-        'SELECT total_amount FROM services WHERE id = ?',
-        [application.service_id]
-      );
-      const [[payments]] = await connection.execute(
-        `SELECT COALESCE(SUM(total_amount), 0) AS total_due, COALESCE(SUM(amount_paid), 0) AS amount_paid
-         FROM payments WHERE application_id = ? AND status NOT IN ('Failed', 'Refunded')`,
-        [application.id]
-      );
-      if (Number(service.total_amount) > 0 && Number(payments.amount_paid) < Math.max(Number(service.total_amount), Number(payments.total_due))) {
-        await connection.rollback();
-        return res.status(400).json({ success: false, message: 'Verified full payment is required before this application can be ready for approval.' });
-      }
+    }
+    if (status === 'Completed' && (!application.certificate_path || !application.certificate_reference || !application.certificate_delivery_date || !application.certificate_recipient)) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: 'A recorded certificate reference and file plus confirmed delivery or collection are required before completion.' });
+    }
+    if (status === 'Ready for Collection' && (!application.certificate_path || !application.certificate_reference)) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: 'Record the actual source-provided certificate before marking it ready for collection.' });
     }
 
     const updateFields = ['status = ?', 'status_reason = ?'];
     const updateValues = [status, normalizedReason || null];
+    if (status === 'Approved') {
+      updateFields.push('approval_remarks = ?', 'approving_officer = ?', 'approved_at = CURRENT_TIMESTAMP');
+      updateValues.push(normalizedRemarks || null, actorId(req));
+    }
+    if (status === 'Delivered') {
+      updateFields.push('certificate_delivery_date = ?', 'certificate_recipient = ?', 'certificate_delivery_notes = ?');
+      updateValues.push(delivery_date, normalizedRecipient, normalizedDeliveryNotes || null);
+    }
+    if (status === 'Completed') {
+      updateFields.push('completed_by = ?', 'completed_at = CURRENT_TIMESTAMP');
+      updateValues.push(actorId(req));
+    }
     if (normalizedRemarks) {
       updateFields.push('notes = ?');
       updateValues.push(normalizedRemarks);
@@ -362,18 +482,40 @@ exports.updateWorkflow = async (req, res) => {
     await writeAudit(
       connection,
       application.id,
-      status === 'Rejected' ? 'Application Rejected' : status === 'Cancelled' ? 'Application Cancelled' : 'Status Changed',
+      status === 'Rejected' ? 'Application Rejected'
+        : status === 'Cancelled' ? 'Application Cancelled'
+          : status === 'Approved' ? 'Internal Approval Recorded'
+            : status === 'Delivered' ? 'Certificate Delivery Confirmed'
+              : status === 'Completed' ? 'Application Completed'
+                : 'Status Changed',
       application.status,
       status,
-      { reason: normalizedReason || null, remarks: normalizedRemarks || null },
+      {
+        reason: normalizedReason || null,
+        remarks: normalizedRemarks || null,
+        delivery_date: status === 'Delivered' ? delivery_date : undefined,
+        recipient: status === 'Delivered' ? normalizedRecipient : undefined,
+        delivery_notes: status === 'Delivered' ? normalizedDeliveryNotes || null : undefined,
+        approval_type: status === 'Approved' ? 'Internal workflow approval; not government approval' : undefined,
+      },
       actorId(req)
     );
-    if (status === 'Pending Additional Documents') {
+    if (status === 'Documents Under Verification') {
+      await recordNotification(connection, application, 'Documents Awaiting Verification', 'Notification is recorded as not configured; no message was sent.');
+    } else if (status === 'Pending Additional Documents') {
       await recordNotification(connection, application, 'Documents Required', 'Notification is recorded as not configured; no message was sent.');
     } else if (status === 'Pending Payment') {
       await recordNotification(connection, application, 'Payment Pending', 'Notification is recorded as not configured; no message was sent.');
+    } else if (status === 'Pending Approval') {
+      await recordNotification(connection, application, 'Application Awaiting Approval', 'Notification is recorded as not configured; no message was sent.');
     } else if (status === 'Rejected') {
       await recordNotification(connection, application, 'Application Rejected', normalizedReason);
+    } else if (status === 'Approved') {
+      await recordNotification(connection, application, 'Internal Approval Recorded', 'Notification delivery is not configured. This is not official government approval.');
+    } else if (status === 'Ready for Collection' || status === 'Ready for Delivery') {
+      await recordNotification(connection, application, 'Certificate Ready for Collection', 'Notification delivery is not configured; no message was sent.');
+    } else if (status === 'Delivered' || status === 'Completed') {
+      await recordNotification(connection, application, status === 'Delivered' ? 'Certificate Delivered' : 'Application Completed', 'Notification delivery is not configured; no message was sent.');
     }
     await connection.commit();
     const [updated] = await db.execute(`${applicationSelect} WHERE a.id = ?`, [application.id]);
@@ -591,19 +733,145 @@ exports.previewDocument = async (req, res) => {
 
 exports.getCertificate = async (req, res) => {
   try {
+    if (!positiveId(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid application reference.' });
     const [rows] = await getDB().execute(
-      `SELECT status, certificate_path, certificate_reference
+      `SELECT status, certificate_path, certificate_reference, certificate_source
        FROM applications WHERE id = ?`,
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: 'Application not found.' });
-    if (rows[0].status !== 'Certificate Generated' || !rows[0].certificate_path || !rows[0].certificate_reference) {
-      return res.status(404).json({ success: false, message: 'No certificate is available from an authorized source for this application.' });
+    if (!rows[0].certificate_path || !rows[0].certificate_reference) {
+      return res.status(404).json({ success: false, message: 'No certificate file has been attached to this application.' });
     }
-    return res.status(409).json({ success: false, message: 'Certificate storage is not connected to an authorized government source.' });
+    const filePath = path.resolve(documentDirectory, path.basename(rows[0].certificate_path));
+    if (!filePath.startsWith(`${documentDirectory}${path.sep}`)) {
+      return res.status(400).json({ success: false, message: 'Invalid certificate file path.' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="certificate-${req.params.id}.pdf"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.sendFile(filePath);
   } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).json({ success: false, message: 'The attached certificate file is unavailable.' });
     console.error('Error retrieving application certificate:', error);
     res.status(500).json({ success: false, message: 'Unable to retrieve certificate.' });
+  }
+};
+
+exports.uploadCertificate = async (req, res) => {
+  if (!positiveId(req.params.id)) {
+    if (req.file) await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Invalid application reference.' });
+  }
+  if (!['Super Admin', 'Admin', 'Manager'].includes(req.user.role)) {
+    if (req.file) await fs.promises.unlink(req.file.path);
+    return res.status(403).json({ success: false, message: 'Only an authorized manager or administrator may record a certificate received from its source.' });
+  }
+  if (!req.file) return res.status(400).json({ success: false, message: 'Attach the actual PDF certificate received from its authorized source.' });
+  const certificateReference = String(req.body.certificate_reference || '').trim();
+  const certificateSource = String(req.body.certificate_source || '').trim();
+  const certificateIssueDate = String(req.body.certificate_issue_date || '').trim();
+  if (req.file.mimetype !== 'application/pdf' || path.extname(req.file.originalname).toLowerCase() !== '.pdf') {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Only a PDF certificate is accepted.' });
+  }
+  const fileHandle = await fs.promises.open(req.file.path, 'r');
+  const signature = Buffer.alloc(5);
+  try {
+    await fileHandle.read(signature, 0, signature.length, 0);
+  } finally {
+    await fileHandle.close();
+  }
+  if (signature.toString() !== '%PDF-') {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'The uploaded file is not a valid PDF.' });
+  }
+  if (certificateReference.length < 2 || certificateReference.length > 120) {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Enter the reference number exactly as provided by the certificate source.' });
+  }
+  if (!certificateSource || certificateSource.length > 255) {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Enter the authorized source that issued the attached certificate.' });
+  }
+  if (!validDate(certificateIssueDate)) {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Enter the certificate issue date shown on the source document.' });
+  }
+  if (certificateIssueDate > currentCentreDate()) {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Certificate issue date cannot be in the future.' });
+  }
+  if (req.body.source_confirmed !== 'true') {
+    await fs.promises.unlink(req.file.path);
+    return res.status(400).json({ success: false, message: 'Confirm that the file and reference were received from the named authorized source.' });
+  }
+
+  const db = getDB();
+  const connection = await db.getConnection();
+  let previousPath;
+  try {
+    await connection.beginTransaction();
+    const [applications] = await connection.execute(
+      'SELECT id, status, certificate_path FROM applications WHERE id = ? FOR UPDATE',
+      [req.params.id]
+    );
+    if (!applications.length) {
+      await connection.rollback();
+      await fs.promises.unlink(req.file.path);
+      return res.status(404).json({ success: false, message: 'Application not found.' });
+    }
+    const application = applications[0];
+    if (application.status !== 'Approved') {
+      await connection.rollback();
+      await fs.promises.unlink(req.file.path);
+      return res.status(409).json({ success: false, message: 'A certificate can only be recorded after the application has been internally approved.' });
+    }
+    previousPath = application.certificate_path;
+    await connection.execute(
+      `UPDATE applications
+       SET status = 'Certificate Generated', certificate_reference = ?,
+           certificate_issue_date = ?, certificate_source = ?, certificate_path = ?
+       WHERE id = ?`,
+      [certificateReference, certificateIssueDate, certificateSource, path.basename(req.file.filename), application.id]
+    );
+    await writeAudit(
+      connection,
+      application.id,
+      'Certificate Received from Source',
+      application.status,
+      'Certificate Generated',
+      {
+        certificate_reference: certificateReference,
+        certificate_issue_date: certificateIssueDate,
+        certificate_source: certificateSource,
+        source_confirmed_by: actorId(req),
+        official_verification: 'Not Connected',
+      },
+      actorId(req)
+    );
+    await recordNotification(connection, application, 'Certificate Received', 'Notification delivery is not configured; no message was sent.');
+    await connection.commit();
+    if (previousPath && previousPath !== req.file.filename) {
+      await fs.promises.unlink(path.resolve(documentDirectory, path.basename(previousPath))).catch((error) => {
+        if (error.code !== 'ENOENT') console.error('Unable to remove replaced certificate file:', error);
+      });
+    }
+    return res.status(201).json({ success: true, message: 'Certificate received from the recorded source and attached to this application; official verification is not connected.' });
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      console.error('Unable to roll back certificate update:', rollbackError);
+    }
+    await fs.promises.unlink(req.file.path).catch((cleanupError) => {
+      if (cleanupError.code !== 'ENOENT') console.error('Unable to remove rejected certificate upload:', cleanupError);
+    });
+    console.error('Error recording certificate:', error);
+    return res.status(500).json({ success: false, message: 'Unable to record the certificate.' });
+  } finally {
+    connection.release();
   }
 };
 

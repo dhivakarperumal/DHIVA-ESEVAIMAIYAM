@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../Components/Button";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -262,7 +262,9 @@ const ContactPage = () => {
   </div>
 
   <div className="md:col-span-2 flex justify-center">
-    <Button type="submit">Send Your Request</Button>
+    <Button type="submit">
+      {loading ? "Sending..." : "Send Your Request"}
+    </Button>
   </div>
 </form>
 

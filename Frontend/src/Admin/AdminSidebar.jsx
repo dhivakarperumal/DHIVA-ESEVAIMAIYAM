@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../PrivateRouter/AuthContext";
+import Logo from "/images/logo.png";
 
 /* ================= NAV ITEMS ================= */
 const navItems = [
@@ -141,17 +142,15 @@ const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) => {
       >
         {/* ========== LOGO ========== */}
         <div className={`flex items-center gap-3 shrink-0 border-b border-white/10 ${collapsed ? "px-3 py-6 justify-center" : "px-4 py-5 lg:px-6 lg:py-6"}`}>
-          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-[#f8740e] flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-xl lg:text-2xl leading-none">D</span>
-          </div>
+          <img src={Logo} alt="Dhiva E-Sevai Maiyam logo" className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover shrink-0" />
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <h1 className="text-base lg:text-lg font-black text-white leading-tight tracking-wide truncate">
-                E SEVAI MAIYAM
+                DHIVA E-SEVAI
               </h1>
               <p className="text-[10px] lg:text-xs text-white/50 font-bold uppercase tracking-widest mt-0.5 truncate">
-                Admin Portal
+                MAIYAM · Admin Portal
               </p>
             </div>
           )}

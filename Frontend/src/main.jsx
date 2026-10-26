@@ -4,6 +4,7 @@ import { createHashRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import Home from './Componets/Home/Home.jsx'
+import ContactPage from './Componets/Contact/ContactPage.jsx'
 import Login from './Componets/Auth/Login.jsx'
 import Register from './Componets/Components/Register.jsx'
 import PrivateRoute from './PrivateRouter/PrivateRouter.jsx'
@@ -51,6 +52,10 @@ const router = createHashRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: 'contact',
+        element: <ContactPage />,
       },
       {
         path: 'login',

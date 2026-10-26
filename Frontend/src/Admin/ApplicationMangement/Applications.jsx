@@ -3,17 +3,36 @@ import {
   AlertCircle, BadgeCheck, CheckCircle2, ChevronLeft,
   ChevronRight, CircleAlert, Clock3, Download, Eye, FileCheck2, FileText,
   FolderOpen, LayoutGrid, List, LoaderCircle, LockKeyhole, Plus, Search, ShieldAlert,
-  UserRoundCog, X,
+  UserRoundCog, X, Printer, Truck, CalendarDays,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api';
+import { useAuth } from '../../PrivateRouter/AuthContext';
 
 const inputClass = 'w-full rounded-lg border border-gray-800 bg-[#0f1115] px-3 py-2.5 text-sm text-white [color-scheme:dark] outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-gray-900';
 const statuses = [
-  'All', 'Application Submitted', 'Documents Under Verification',
-  'Pending Additional Documents', 'Pending Payment', 'Ready for Approval',
-  'Approved', 'Certificate Generated', 'Completed', 'Rejected', 'Cancelled',
+  'All', 'Submitted', 'Application Submitted', 'Documents Under Verification',
+  'Pending Additional Documents', 'Pending Payment',
+  'Pending Approval', 'Approved', 'Certificate Generated', 'Ready for Collection',
+  'Ready for Delivery', 'Delivered', 'Completed', 'Rejected', 'Cancelled',
 ];
+const paymentStatuses = ['All', 'Not Required', 'Paid', 'Partially Paid', 'Pending', 'Failed', 'Refunded'];
+const progressStatuses = [
+  'Submitted', 'Documents Under Verification', 'Pending Approval', 'Approved',
+  'Certificate Generated', 'Ready for Collection', 'Ready for Delivery', 'Delivered', 'Completed',
+];
+const progressIndex = (status) => {
+  if (status === 'Application Submitted') return 0;
+  if (status === 'Pending Additional Documents' || status === 'Pending Payment') return 1;
+  return progressStatuses.indexOf(status);
+};
+const printEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[character]));
+const localDate = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -26,13 +45,17 @@ const formatDate = (value) => {
 
 const statusColors = {
   'Application Submitted': 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+  Submitted: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
   Pending: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
   'Documents Under Verification': 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
   'Pending Additional Documents': 'border-amber-500/30 bg-amber-500/10 text-amber-400',
   'Pending Payment': 'border-orange-500/30 bg-orange-500/10 text-orange-400',
-  'Ready for Approval': 'border-violet-500/30 bg-violet-500/10 text-violet-400',
+  'Pending Approval': 'border-violet-500/30 bg-violet-500/10 text-violet-400',
   Approved: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
   'Certificate Generated': 'border-teal-500/30 bg-teal-500/10 text-teal-400',
+  'Ready for Collection': 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
+  'Ready for Delivery': 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
+  Delivered: 'border-green-500/30 bg-green-500/10 text-green-300',
   Completed: 'border-green-500/30 bg-green-500/10 text-green-400',
   Rejected: 'border-red-500/30 bg-red-500/10 text-red-400',
   Cancelled: 'border-gray-700 bg-gray-800 text-gray-400',
@@ -93,13 +116,16 @@ const emptyApplication = {
   applicant_name: '', mobile: '', email: '', service_id: '', center_name: '', notes: '',
 };
 
-export default function Applications() {
+export default function Applications({ certificateMode = false }) {
+  const { role } = useAuth();
+  const canApprove = ['super admin', 'admin', 'manager'].includes(String(role || '').toLowerCase());
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState(null);
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [filters, setFilters] = useState({
-    search: '', status: 'All', service_id: 'All', page: 1, limit: 10,
+    search: '', status: 'All', service_id: 'All', staff_id: 'All',
+    payment_status: 'All', date_from: '', date_to: '', page: 1, limit: 10,
   });
   const [viewMode, setViewMode] = useState('table');
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
@@ -114,6 +140,7 @@ export default function Applications() {
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
   const [selectedAction, setSelectedAction] = useState('');
+  const [completionConfirmed, setCompletionConfirmed] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [assignment, setAssignment] = useState('');
   const [uploadDocumentId, setUploadDocumentId] = useState('');
@@ -123,11 +150,23 @@ export default function Applications() {
   const [reviewRemarks, setReviewRemarks] = useState('');
   const [reviewBusy, setReviewBusy] = useState(false);
   const [previewBusy, setPreviewBusy] = useState('');
+  const [certificateForm, setCertificateForm] = useState({
+    certificate_reference: '', certificate_issue_date: '', certificate_source: '',
+    source_confirmed: false, file: null,
+  });
+  const [certificateBusy, setCertificateBusy] = useState(false);
+  const [deliveryForm, setDeliveryForm] = useState({
+    delivery_date: '', recipient: '', delivery_notes: '',
+  });
 
   const params = useMemo(() => ({
     search: filters.search.trim() || undefined,
     status: filters.status === 'All' ? undefined : filters.status,
     service_id: filters.service_id === 'All' ? undefined : filters.service_id,
+    staff_id: filters.staff_id === 'All' ? undefined : filters.staff_id,
+    payment_status: filters.payment_status === 'All' ? undefined : filters.payment_status,
+    date_from: filters.date_from || undefined,
+    date_to: filters.date_to || undefined,
     page: filters.page,
     limit: filters.limit,
   }), [filters]);
@@ -199,6 +238,8 @@ export default function Applications() {
     setDetailsLoading(true);
     setReason('');
     setRemarks('');
+    setCertificateForm({ certificate_reference: '', certificate_issue_date: '', certificate_source: '', source_confirmed: false, file: null });
+    setDeliveryForm({ delivery_date: localDate(), recipient: '', delivery_notes: '' });
     setAssignment(record.assigned_staff_id ? String(record.assigned_staff_id) : '');
     try {
       const { data } = await api.get(`/applications/${record.id}`);
@@ -214,6 +255,8 @@ export default function Applications() {
   const beginWorkflowAction = (status) => {
     setReason('');
     setRemarks('');
+    setCompletionConfirmed(false);
+    setDeliveryForm((current) => ({ ...current, delivery_date: current.delivery_date || localDate() }));
     setSelectedAction(status);
   };
 
@@ -226,8 +269,11 @@ export default function Applications() {
         status: selectedAction,
         reason: reason.trim(),
         remarks: remarks.trim(),
+        ...(selectedAction === 'Delivered' ? deliveryForm : {}),
       });
-      toast.success(`Application status updated to ${selectedAction}.`);
+      toast.success(selectedAction === 'Approved'
+        ? 'Internal approval recorded. Government approval is not connected.'
+        : `Application status updated to ${selectedAction}.`);
       setSelectedAction('');
       await reloadCurrentApplication(details.id);
     } catch (error) {
@@ -320,6 +366,116 @@ export default function Applications() {
     }
   };
 
+  const uploadCertificate = async (event) => {
+    event.preventDefault();
+    if (!details || !certificateForm.file || !certificateForm.source_confirmed || certificateBusy) return;
+    const formData = new FormData();
+    formData.append('document', certificateForm.file);
+    formData.append('certificate_reference', certificateForm.certificate_reference.trim());
+    formData.append('certificate_issue_date', certificateForm.certificate_issue_date);
+    formData.append('certificate_source', certificateForm.certificate_source.trim());
+    formData.append('source_confirmed', 'true');
+    setCertificateBusy(true);
+    try {
+      await api.post(`/applications/${details.id}/certificate`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Source-provided certificate attached. Official verification is not connected.');
+      setCertificateForm({ certificate_reference: '', certificate_issue_date: '', certificate_source: '', source_confirmed: false, file: null });
+      await reloadCurrentApplication(details.id);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to attach the source-provided certificate.');
+    } finally {
+      setCertificateBusy(false);
+    }
+  };
+
+  const previewCertificate = async () => {
+    if (!details) return;
+    setPreviewBusy('certificate');
+    try {
+      const { data } = await api.get(`/applications/${details.id}/certificate`, { responseType: 'blob' });
+      const url = URL.createObjectURL(data);
+      const preview = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!preview) {
+        URL.revokeObjectURL(url);
+        toast.error('Allow pop-ups to preview this certificate.');
+        return;
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to preview the attached certificate.');
+    } finally {
+      setPreviewBusy('');
+    }
+  };
+
+  const printApplication = () => {
+    if (!details) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Allow pop-ups to print application details.');
+      return;
+    }
+    const values = [
+      ['Application Number', details.application_number || details.display_application_number],
+      ['Applicant', details.applicant_name],
+      ['Mobile', details.mobile],
+      ['Email', details.email],
+      ['Certificate / service', details.service_name],
+      ['Status', details.status],
+      ['Payment', details.payment_status],
+      ['Assigned staff', details.assigned_staff_name || 'Unassigned'],
+      ['Submitted', formatDate(details.created_at)],
+      ['Last updated', formatDate(details.updated_at)],
+      ['Certificate reference', details.certificate_reference],
+      ['Delivery recipient', details.certificate_recipient],
+      ['Delivery date', details.certificate_delivery_date ? formatDate(details.certificate_delivery_date) : ''],
+    ];
+    const html = `<!doctype html><html><head><title>Application ${printEscape(details.application_number || details.id)}</title><style>body{font:14px Arial,sans-serif;color:#222;margin:28px}h1{font-size:22px}h2{font-size:16px;margin-top:28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{border:1px solid #ddd;padding:10px}.muted{color:#666;font-size:12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px;text-align:left} @media print{body{margin:15mm}}</style></head><body><h1>DHIVA E-SEVAI MAIYAM — Application record</h1><p class="muted">Internal application tracking only. This printout is not an official government certificate or approval.</p><div class="grid">${values.map(([label, value]) => `<div class="box"><b>${printEscape(label)}</b><br>${printEscape(value || '—')}</div>`).join('')}</div><h2>Application timeline</h2><table><thead><tr><th>Event</th><th>From → To</th><th>Staff / time</th><th>Reason / notes</th></tr></thead><tbody>${(details.timeline || []).map((event) => `<tr><td>${printEscape(event.event_type)}</td><td>${printEscape(event.previous_status || '—')} → ${printEscape(event.new_status || '—')}</td><td>${printEscape(event.actor_id)}<br>${printEscape(formatDate(event.created_at))}</td><td>${printEscape(event.details?.reason || event.details?.remarks || '')}</td></tr>`).join('')}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const printReport = async (period) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Allow pop-ups to print the status report.');
+      return;
+    }
+    printWindow.document.write('<p style="font:14px Arial;padding:24px">Preparing report…</p>');
+    const today = localDate();
+    const [year, month] = today.split('-');
+    const reportParams = {
+      ...params,
+      page: 1,
+      limit: 100,
+      date_from: period === 'daily' ? today : `${year}-${month}-01`,
+      date_to: period === 'daily' ? today : today,
+    };
+    try {
+      const first = await api.get('/applications', { params: reportParams });
+      const rows = [...(first.data.data || [])];
+      for (let pageNumber = 2; pageNumber <= first.data.pagination.pages; pageNumber += 1) {
+        const { data } = await api.get('/applications', { params: { ...reportParams, page: pageNumber } });
+        rows.push(...(data.data || []));
+      }
+      const counts = rows.reduce((result, row) => {
+        const status = row.status || 'Submitted';
+        result[status] = (result[status] || 0) + 1;
+        return result;
+      }, {});
+      const title = period === 'daily' ? `Daily status report — ${today}` : `Monthly status report — ${year}-${month}`;
+      const html = `<!doctype html><html><head><title>${printEscape(title)}</title><style>body{font:13px Arial,sans-serif;color:#222;margin:28px}h1{font-size:20px}table{border-collapse:collapse;width:100%;margin:18px 0}td,th{border:1px solid #ccc;padding:7px;text-align:left}.summary{display:inline-block;border:1px solid #ddd;padding:8px;margin:3px}@media print{body{margin:15mm}}</style></head><body><h1>DHIVA E-SEVAI MAIYAM — ${printEscape(title)}</h1><p>Applications in report: ${rows.length}</p><h2>Status totals</h2>${Object.entries(counts).map(([status, count]) => `<span class="summary">${printEscape(status)}: <b>${count}</b></span>`).join('')}<table><thead><tr><th>Application</th><th>Applicant</th><th>Certificate / service</th><th>Payment</th><th>Status</th><th>Assigned staff</th><th>Submitted</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${printEscape(row.application_number || row.display_application_number)}</td><td>${printEscape(row.applicant_name)}</td><td>${printEscape(row.service_name)}</td><td>${printEscape(row.payment_status)}</td><td>${printEscape(row.status)}</td><td>${printEscape(row.assigned_staff_name || 'Unassigned')}</td><td>${printEscape(formatDate(row.created_at))}</td></tr>`).join('')}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`;
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } catch (error) {
+      printWindow.close();
+      toast.error(error.response?.data?.message || `Unable to create ${period} status report.`);
+    }
+  };
+
   const addApplication = async (event) => {
     event.preventDefault();
     setIsSaving(true);
@@ -353,14 +509,18 @@ export default function Applications() {
         ['Last Updated', 'updated_at'],
       ];
       const csv = [columns.map(([label]) => `"${label}"`).join(',')]
-        .concat(rows.map((record) => columns.map(([, key]) => `"${String(record[key] ?? '').replaceAll('"', '""')}"`).join(',')))
+        .concat(rows.map((record) => columns.map(([, key]) => {
+          const value = String(record[key] ?? '');
+          const safeValue = /^[\t\r ]*[=+\-@]/.test(value) ? `'${value}` : value;
+          return `"${safeValue.replaceAll('"', '""')}"`;
+        }).join(',')))
         .join('\r\n');
       const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }));
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = `dhiva-applications-${new Date().toISOString().slice(0, 10)}.csv`;
       anchor.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to export the filtered applications.');
     }
@@ -368,14 +528,18 @@ export default function Applications() {
 
   const actionsFor = (application) => {
     const available = {
+      Submitted: ['Documents Under Verification'],
       'Application Submitted': ['Documents Under Verification'],
       Pending: ['Documents Under Verification'],
-      'Documents Under Verification': ['Pending Additional Documents', 'Pending Payment', 'Ready for Approval'],
+      'Documents Under Verification': ['Pending Additional Documents', 'Pending Payment', 'Pending Approval'],
       'Pending Additional Documents': ['Documents Under Verification'],
-      'Pending Payment': ['Documents Under Verification', 'Ready for Approval'],
-      'Ready for Approval': ['Rejected', 'Cancelled'],
-      Approved: [],
-      'Certificate Generated': [],
+      'Pending Payment': ['Documents Under Verification', 'Pending Approval'],
+      'Pending Approval': ['Approved', 'Rejected', 'Cancelled'],
+      Approved: ['Certificate Generated'],
+      'Certificate Generated': ['Ready for Collection', 'Ready for Delivery'],
+      'Ready for Collection': ['Delivered'],
+      'Ready for Delivery': ['Delivered'],
+      Delivered: ['Completed'],
       Completed: [],
       Rejected: [],
       Cancelled: [],
@@ -395,7 +559,7 @@ export default function Applications() {
     { label: 'Approved Applications', value: summary?.approved_applications, icon: BadgeCheck, tone: 'bg-green-500 text-white' },
     { label: 'Rejected Applications', value: summary?.rejected_applications, icon: CircleAlert, tone: 'bg-red-600 text-white' },
     { label: 'Certificates Completed', value: summary?.certificates_completed, icon: CheckCircle2, tone: 'bg-teal-500 text-white' },
-    { label: 'Ready for Download', value: summary?.certificates_ready, icon: Download, tone: 'bg-purple-600 text-white' },
+    { label: 'Certificates Delivered', value: summary?.certificates_delivered, icon: Truck, tone: 'bg-cyan-600 text-white' },
   ];
 
   return (
@@ -404,11 +568,13 @@ export default function Applications() {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-orange-500"><FolderOpen size={15} /> Certificate services</div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Applications</h1>
-            <p className="mt-1 text-sm text-gray-400">Track document review, payment readiness, external approval and completion.</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">{certificateMode ? 'Certificate Management' : 'Applications'}</h1>
+            <p className="mt-1 text-sm text-gray-400">Track real application records, document checks, internal approval, certificate receipt and delivery.</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={exportReport} disabled={loading || !pagination.total} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800 disabled:opacity-50"><Download size={16} /> Export CSV</button>
+            <button type="button" onClick={() => printReport('daily')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800"><Printer size={15} /> Daily report</button>
+            <button type="button" onClick={() => printReport('monthly')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800"><CalendarDays size={15} /> Monthly report</button>
             <button type="button" onClick={() => setIsAddOpen(true)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-orange-500"><Plus size={16} /> New application</button>
           </div>
         </div>
@@ -424,11 +590,29 @@ export default function Applications() {
 
         {pageError && <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300"><AlertCircle size={18} className="mt-0.5 shrink-0" /><p>{pageError}</p><button type="button" onClick={() => { setLoading(true); loadList(); loadSummary(); }} className="ml-auto font-semibold">Retry</button></div>}
 
+        {summary && <section aria-label="In-app workflow notifications" className="rounded-xl border border-gray-800 bg-[#1a1c23] p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white"><AlertCircle size={16} className="text-orange-400" /> Workflow attention</h2>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              ['New applications awaiting review', summary.awaiting_document_review, 'text-blue-300'],
+              ['Applications awaiting approval', summary.awaiting_approval, 'text-violet-300'],
+              ['Approved, awaiting certificate', summary.awaiting_certificate, 'text-emerald-300'],
+              ['Certificates ready for collection', summary.awaiting_collection, 'text-cyan-300'],
+              ['Delivered, awaiting completion', summary.awaiting_completion, 'text-amber-300'],
+            ].map(([label, count, tone]) => <div key={label} className="flex items-center justify-between gap-3 rounded-lg bg-[#111318] px-3 py-2.5"><span className="text-xs text-gray-300">{label}</span><span className={`text-sm font-bold tabular-nums ${tone}`}>{Number(count || 0)}</span></div>)}
+          </div>
+          <p className="mt-3 text-[11px] text-gray-500">SMS, email, and WhatsApp delivery are not configured. Status notifications are shown here and logged; no external messages are claimed as sent.</p>
+        </section>}
+
         <div className="rounded-xl border border-gray-800 bg-[#1a1c23]">
           <div className="flex flex-wrap items-center gap-3 border-b border-gray-800 p-4">
             <label className="relative min-w-[220px] flex-1"><span className="sr-only">Search applications</span><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /><input value={filters.search} onChange={(event) => setFilter('search', event.target.value)} placeholder="Search application, name, mobile..." className={`${inputClass} pl-10`} /></label>
             <label className="min-w-[150px] flex-1 sm:flex-none sm:w-[175px]"><span className="sr-only">Filter by service</span><select value={filters.service_id} onChange={(event) => setFilter('service_id', event.target.value)} className={inputClass}><option value="All">All Services</option>{services.map((service) => <option key={service.id} value={service.id}>{service.service_name}</option>)}</select></label>
             <label className="min-w-[150px] flex-1 sm:flex-none sm:w-[175px]"><span className="sr-only">Filter by status</span><select value={filters.status} onChange={(event) => setFilter('status', event.target.value)} className={inputClass}>{statuses.map((status) => <option key={status}>{status === 'All' ? 'All Status' : status}</option>)}</select></label>
+            <label className="min-w-[150px] flex-1 sm:flex-none sm:w-[170px]"><span className="sr-only">Filter by assigned staff</span><select value={filters.staff_id} onChange={(event) => setFilter('staff_id', event.target.value)} className={inputClass}><option value="All">All assigned staff</option><option value="Unassigned">Unassigned</option>{staff.map((person) => <option key={person.id} value={person.id}>{person.username}</option>)}</select></label>
+            <label className="min-w-[145px] flex-1 sm:flex-none sm:w-[160px]"><span className="sr-only">Filter by payment status</span><select value={filters.payment_status} onChange={(event) => setFilter('payment_status', event.target.value)} className={inputClass}>{paymentStatuses.map((status) => <option key={status} value={status}>{status === 'All' ? 'All payment status' : status}</option>)}</select></label>
+            <label className="min-w-[145px] flex-1 sm:flex-none sm:w-[160px]"><span className="sr-only">Submitted from</span><input aria-label="Submitted from" type="date" value={filters.date_from} onChange={(event) => setFilter('date_from', event.target.value)} className={inputClass} /></label>
+            <label className="min-w-[145px] flex-1 sm:flex-none sm:w-[160px]"><span className="sr-only">Submitted to</span><input aria-label="Submitted to" type="date" value={filters.date_to} onChange={(event) => setFilter('date_to', event.target.value)} className={inputClass} /></label>
             <div role="group" aria-label="Application view" className="ml-auto flex shrink-0 overflow-hidden rounded-lg border border-gray-700">
               <button type="button" onClick={() => setViewMode('card')} aria-pressed={viewMode === 'card'} className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm transition-colors ${viewMode === 'card' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><LayoutGrid size={17} /><span>Cards</span></button>
               <button type="button" onClick={() => setViewMode('table')} aria-pressed={viewMode === 'table'} className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm transition-colors ${viewMode === 'table' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'}`}><List size={17} /><span>Table</span></button>
@@ -531,13 +715,34 @@ export default function Applications() {
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-800 bg-[#15171d] p-4">
                 <div><p className="text-xs text-gray-400">Current status</p><div className="mt-1"><StatusBadge status={details.status} /></div></div>
                 <div className="text-right"><p className="text-xs text-gray-400">Payment status</p><div className="mt-1"><StatusBadge status={details.payment_status || 'Pending'} /></div></div>
+                <button type="button" onClick={printApplication} className="inline-flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-300 hover:bg-gray-800"><Printer size={14} /> Print details</button>
               </div>
+              <section className="rounded-xl border border-gray-800 bg-[#15171d] p-4">
+                <h3 className="mb-4 text-sm font-semibold text-gray-100">Certificate lifecycle</h3>
+                {['Rejected', 'Cancelled'].includes(details.status) ? (
+                  <div className={`rounded-lg border p-3 text-sm ${details.status === 'Rejected' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-gray-700 bg-gray-800/50 text-gray-300'}`}>
+                    {details.status}{details.status_reason ? ` · ${details.status_reason}` : ''}
+                  </div>
+                ) : (
+                  <ol className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+                    {progressStatuses.map((step, index) => {
+                      const current = progressIndex(details.status);
+                      const complete = current >= index;
+                      return <li key={step} className={`relative rounded-lg border p-3 text-xs ${complete ? 'border-orange-500/40 bg-orange-500/10 text-orange-200' : 'border-gray-800 bg-[#101116] text-gray-500'}`}>
+                        <span className={`mb-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${complete ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-500'}`}>{complete ? <CheckCircle2 size={13} /> : index + 1}</span>
+                        <span className="leading-snug">{step}</span>
+                      </li>;
+                    })}
+                  </ol>
+                )}
+                <p className="mt-3 text-[11px] text-amber-300">Internal workflow tracking only. An internal approval or attached source file does not verify government approval or certificate authenticity.</p>
+              </section>
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {[['Applicant', details.applicant_name], ['Mobile', details.mobile || '—'], ['Email', details.email || '—'], ['Application number', details.application_number || details.display_application_number], ['Certificate / service', details.service_name], ['Category', details.category], ['Service centre', details.center_name || '—'], ['Submitted', formatDate(details.created_at)], ['Last updated', formatDate(details.updated_at)], ['Assigned staff', details.assigned_staff_name || 'Unassigned'], ['Official approval source', details.external_approval_status || 'Not Connected']].map(([label, value]) => <div key={label} className="rounded-lg border border-gray-800 bg-[#15171d] p-3"><p className="text-xs text-gray-400">{label}</p><p className="mt-1 break-words text-sm font-medium text-gray-100">{value}</p></div>)}
+                {[['Applicant', details.applicant_name], ['Mobile', details.mobile || '—'], ['Email', details.email || '—'], ['Application number', details.application_number || details.display_application_number], ['Certificate / service', details.service_name], ['Category', details.category], ['Service centre', details.center_name || '—'], ['Submitted', formatDate(details.created_at)], ['Last updated', formatDate(details.updated_at)], ['Assigned staff', details.assigned_staff_name || 'Unassigned'], ['Internal decision by', details.approving_officer || '—'], ['Internal approval date', details.approved_at ? formatDate(details.approved_at) : '—'], ['Certificate reference', details.certificate_reference || '—'], ['Certificate source', details.certificate_source || '—'], ['Issue date', details.certificate_issue_date ? formatDate(details.certificate_issue_date) : '—'], ['Delivered / collected by', details.certificate_recipient || '—'], ['Delivery date', details.certificate_delivery_date ? formatDate(details.certificate_delivery_date) : '—'], ['External government status', details.external_approval_status || 'Not Connected']].map(([label, value]) => <div key={label} className="rounded-lg border border-gray-800 bg-[#15171d] p-3"><p className="text-xs text-gray-400">{label}</p><p className="mt-1 break-words text-sm font-medium text-gray-100">{value}</p></div>)}
               </section>
 
               <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <div className="flex items-start gap-3"><ShieldAlert size={19} className="mt-0.5 shrink-0 text-amber-400" /><div><h3 className="text-sm font-semibold text-amber-200">Government approval and certificates are not connected</h3><p className="mt-1 text-xs leading-relaxed text-amber-300">The current system has no authorized government-officer account or external approval/certificate source. Local staff cannot mark an application approved, generate an official certificate, or mark completion.</p></div></div>
+                <div className="flex items-start gap-3"><ShieldAlert size={19} className="mt-0.5 shrink-0 text-amber-400" /><div><h3 className="text-sm font-semibold text-amber-200">Internal tracking — not an official government decision</h3><p className="mt-1 text-xs leading-relaxed text-amber-300">This system can record a manager's internal decision and securely attach a certificate file received from a named source. It does not connect to a government approval portal, issue certificates, or independently verify attached files.</p></div></div>
               </section>
 
               <section className="space-y-3 rounded-xl border border-gray-800 p-4">
@@ -571,6 +776,26 @@ export default function Applications() {
                 <p className="mt-2 text-xs text-gray-400">Recorded as paid: ₹{Number(details.payment_amount_paid || 0).toFixed(2)} · Due: ₹{Math.max(0, Number(details.payment_total_due || 0) - Number(details.payment_amount_paid || 0)).toFixed(2)}</p>
               </section>
 
+              {['Approved', 'Certificate Generated', 'Ready for Collection', 'Ready for Delivery', 'Delivered', 'Completed'].includes(details.status) && (
+                <section className="space-y-3 rounded-xl border border-gray-800 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div><h3 className="flex items-center gap-2 text-sm font-semibold text-gray-100"><FileCheck2 size={16} /> Certificate record</h3><p className="mt-1 text-xs text-gray-400">Attach an actual source-provided PDF; the system does not create or authenticate certificates.</p></div>
+                    {details.certificate_path && <button type="button" onClick={previewCertificate} disabled={previewBusy === 'certificate'} className="inline-flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-xs font-semibold text-gray-300 hover:bg-gray-800 disabled:opacity-50">{previewBusy === 'certificate' ? <LoaderCircle size={14} className="animate-spin" /> : <Eye size={14} />} Preview attached PDF</button>}
+                  </div>
+                  {details.certificate_reference && <div className="grid gap-2 rounded-lg bg-[#15171d] p-3 text-xs sm:grid-cols-2"><p><span className="text-gray-500">Reference:</span> <span className="text-gray-200">{details.certificate_reference}</span></p><p><span className="text-gray-500">Source:</span> <span className="text-gray-200">{details.certificate_source || '—'}</span></p><p><span className="text-gray-500">Issue date:</span> <span className="text-gray-200">{details.certificate_issue_date ? formatDate(details.certificate_issue_date) : '—'}</span></p><p className="text-amber-300">Source recorded; official verification not connected.</p></div>}
+                  {details.status === 'Approved' && canApprove && (
+                    <form onSubmit={uploadCertificate} className="grid gap-3 rounded-lg border border-gray-800 bg-[#15171d] p-3 sm:grid-cols-2">
+                      <Field label="Source certificate reference" required><input required minLength={2} maxLength={120} value={certificateForm.certificate_reference} onChange={(event) => setCertificateForm((current) => ({ ...current, certificate_reference: event.target.value }))} className={inputClass} /></Field>
+                      <Field label="Certificate issue date" required><input required type="date" max={localDate()} value={certificateForm.certificate_issue_date} onChange={(event) => setCertificateForm((current) => ({ ...current, certificate_issue_date: event.target.value }))} className={inputClass} /></Field>
+                      <Field label="Authorized issuing source" required><input required minLength={2} maxLength={255} value={certificateForm.certificate_source} onChange={(event) => setCertificateForm((current) => ({ ...current, certificate_source: event.target.value }))} className={inputClass} /></Field>
+                      <Field label="Actual certificate PDF" required><input required type="file" accept=".pdf,application/pdf" onChange={(event) => setCertificateForm((current) => ({ ...current, file: event.target.files?.[0] || null }))} className={inputClass} /></Field>
+                      <label className="flex items-start gap-2 text-xs text-gray-300 sm:col-span-2"><input required type="checkbox" checked={certificateForm.source_confirmed} onChange={(event) => setCertificateForm((current) => ({ ...current, source_confirmed: event.target.checked }))} className="mt-0.5 accent-orange-500" /><span>I confirm this PDF and reference were received from the authorized source named above. This records receipt only; DHIVA does not verify government authenticity.</span></label>
+                      <div className="sm:col-span-2"><button type="submit" disabled={certificateBusy || !certificateForm.file || !certificateForm.source_confirmed} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{certificateBusy && <LoaderCircle size={14} className="animate-spin" />}Record certificate received</button></div>
+                    </form>
+                  )}
+                </section>
+              )}
+
               <section className="rounded-xl border border-gray-800 p-4">
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-100"><Clock3 size={16} /> Application timeline</h3>
                 {details.timeline?.length ? <ol className="space-y-3 border-l border-gray-700 pl-4">{details.timeline.map((event, index) => <li key={`${event.event_type}-${event.created_at}-${index}`} className="relative"><span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-[#1a1c23] bg-orange-500 shadow" /><p className="text-sm font-semibold text-gray-100">{event.event_type}{event.new_status ? ` · ${event.previous_status || 'New'} → ${event.new_status}` : ''}</p><p className="text-xs text-gray-400">{formatDate(event.created_at)} · {event.actor_id}</p>{event.details?.reason && <p className="mt-1 text-xs text-gray-300">Reason: {event.details.reason}</p>}{event.details?.remarks && <p className="mt-1 text-xs text-gray-300">Remarks: {event.details.remarks}</p>}</li>)}</ol> : <p className="text-sm text-gray-400">No workflow history has been recorded yet.</p>}
@@ -583,17 +808,30 @@ export default function Applications() {
 
               <section className="rounded-xl border border-gray-800 p-4">
                 <h3 className="mb-2 text-sm font-semibold text-gray-100">Workflow actions</h3>
-                {actionsFor(details).length ? <div className="flex flex-wrap gap-2">{actionsFor(details).map((status) => {
+                {actionsFor(details).filter((status) => status !== 'Certificate Generated' && (status !== 'Approved' || canApprove)).length ? <div className="flex flex-wrap gap-2">{actionsFor(details).filter((status) => status !== 'Certificate Generated' && (status !== 'Approved' || canApprove)).map((status) => {
                   const missingDocuments = requiredMissing(details);
                   const paymentDue = Math.max(0, Number(details.payment_total_due || 0) - Number(details.payment_amount_paid || 0));
-                  const readyBlocked = status === 'Ready for Approval' && (missingDocuments.length > 0 || paymentDue > 0);
+                  const approvalStep = ['Pending Approval', 'Approved'].includes(status);
+                  const readyBlocked = approvalStep && (missingDocuments.length > 0 || paymentDue > 0 || (status === 'Approved' && !canApprove));
                   const readyBlockReason = missingDocuments.length
                     ? `Verify required documents: ${missingDocuments.map((item) => item.document_name).join(', ')}`
-                    : 'Verified full payment is required before approval readiness.';
-                  return <button key={status} type="button" onClick={() => beginWorkflowAction(status)} disabled={readyBlocked} title={readyBlocked ? readyBlockReason : undefined} className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(status) ? 'border border-gray-700 bg-[#0f1115] text-gray-300 hover:bg-gray-800' : 'bg-orange-600 text-white hover:bg-orange-500'}`}>{status === 'Documents Under Verification' ? 'Start document review' : status === 'Ready for Approval' ? 'Mark ready for approval' : status === 'Pending Additional Documents' ? 'Request documents' : status}</button>;
+                    : paymentDue > 0 ? 'Verified full payment is required before approval.'
+                      : 'Your role is not authorized to record internal approval.';
+                  const labels = {
+                    'Documents Under Verification': 'Verify documents',
+                    'Pending Additional Documents': 'Request additional documents',
+                    'Pending Payment': 'Mark payment pending',
+                    'Pending Approval': 'Mark pending approval',
+                    Approved: 'Record internal approval',
+                    'Ready for Collection': 'Mark ready for collection',
+                    'Ready for Delivery': 'Mark ready for delivery',
+                    Delivered: 'Confirm delivery / collection',
+                    Completed: 'Mark completed',
+                  };
+                  return <button key={status} type="button" onClick={() => beginWorkflowAction(status)} disabled={readyBlocked} title={readyBlocked ? readyBlockReason : undefined} className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(status) ? 'border border-gray-700 bg-[#0f1115] text-gray-300 hover:bg-gray-800' : 'bg-orange-600 text-white hover:bg-orange-500'}`}>{labels[status] || status}</button>;
                 })}</div> : <p className="text-sm text-gray-400">No local workflow actions are available for this status.</p>}
-                {details.status === 'Ready for Approval' && <p className="mt-3 flex items-start gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 text-xs text-violet-300"><LockKeyhole size={15} className="mt-0.5 shrink-0" />Approval remains unavailable until an authorized government approval source is connected. A local admin cannot approve or issue a government certificate.</p>}
-                {details.status === 'Certificate Generated' && <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">Certificate downloads are disabled unless a verified certificate from an authorized source is on record.</p>}
+                {details.status === 'Pending Approval' && !canApprove && <p className="mt-3 flex items-start gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 text-xs text-violet-300"><LockKeyhole size={15} className="mt-0.5 shrink-0" />Only a manager or administrator can record an internal approval decision. This is not government approval.</p>}
+                {details.status === 'Certificate Generated' && <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">The attached certificate is recorded as received from its named source; this system does not verify its authenticity.</p>}
               </section>
             </>}
             <div className="flex justify-end border-t border-gray-800 pt-4"><button type="button" onClick={() => { setDialogApplication(null); setDetails(null); setSelectedAction(''); }} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Close</button></div>
@@ -602,12 +840,24 @@ export default function Applications() {
       )}
 
       {selectedAction && details && (
-        <Dialog title={selectedAction === 'Ready for Approval' ? 'Confirm approval readiness' : selectedAction === 'Rejected' ? 'Reject application' : selectedAction === 'Cancelled' ? 'Cancel application' : selectedAction === 'Pending Additional Documents' ? 'Request additional documents' : 'Update workflow'} description="This action is checked and recorded by the backend." onClose={() => !actionBusy && setSelectedAction('')}>
+        <Dialog title={selectedAction === 'Approved' ? 'Confirm internal approval' : selectedAction === 'Pending Approval' ? 'Move to pending approval' : selectedAction === 'Rejected' ? 'Reject application' : selectedAction === 'Cancelled' ? 'Cancel application' : selectedAction === 'Pending Additional Documents' ? 'Request additional documents' : selectedAction === 'Delivered' ? 'Confirm certificate delivery / collection' : selectedAction === 'Completed' ? 'Complete application' : ['Ready for Collection', 'Ready for Delivery'].includes(selectedAction) ? 'Mark certificate ready' : 'Update workflow'} description="This action is recorded in the application audit trail." onClose={() => !actionBusy && setSelectedAction('')}>
           <form onSubmit={submitWorkflowAction} className="space-y-4 p-5">
             <div className="rounded-lg border border-gray-800 bg-[#15171d] p-3 text-sm text-gray-200"><p><b>Applicant:</b> {details.applicant_name}</p><p className="mt-1"><b>Application:</b> {details.application_number || details.display_application_number}</p><p className="mt-1"><b>Service:</b> {details.service_name}</p><p className="mt-1"><b>New status:</b> {selectedAction}</p></div>
-            {selectedAction === 'Ready for Approval' && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">This only records internal readiness; it does not approve the application or issue a government certificate.</div>}
-            <Field label={['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) ? 'Reason' : 'Staff remarks'} required={['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction)}><textarea minLength={['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) ? 4 : undefined} maxLength={1000} rows={3} value={['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) ? reason : remarks} onChange={(event) => ['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) ? setReason(event.target.value) : setRemarks(event.target.value)} className={inputClass} placeholder={selectedAction === 'Pending Additional Documents' ? 'List the documents or corrections needed' : 'Optional notes for the audit history'} required={['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction)} /></Field>
-            <div className="flex justify-end gap-2 border-t border-gray-800 pt-4"><button type="button" onClick={() => setSelectedAction('')} disabled={actionBusy} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Cancel</button><button type="submit" disabled={actionBusy || (['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) && reason.trim().length < 4)} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{actionBusy && <LoaderCircle size={15} className="animate-spin" />}Confirm action</button></div>
+            {selectedAction === 'Pending Approval' && <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">This records that document and fee checks are ready for an internal decision. It does not approve the application or issue a government certificate.</div>}
+            {selectedAction === 'Approved' && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">You are recording an internal administrative approval. This is not an official government approval and does not generate a certificate.</div>}
+            {selectedAction === 'Delivered' && <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Delivery / collection date" required><input required type="date" max={localDate()} value={deliveryForm.delivery_date} onChange={(event) => setDeliveryForm((current) => ({ ...current, delivery_date: event.target.value }))} className={inputClass} /></Field>
+              <Field label="Received by" required><input required maxLength={255} value={deliveryForm.recipient} onChange={(event) => setDeliveryForm((current) => ({ ...current, recipient: event.target.value }))} className={inputClass} /></Field>
+              <div className="sm:col-span-2"><Field label="Delivery confirmation notes"><textarea maxLength={1000} rows={2} value={deliveryForm.delivery_notes} onChange={(event) => setDeliveryForm((current) => ({ ...current, delivery_notes: event.target.value }))} className={inputClass} /></Field></div>
+            </div>}
+            {['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) ? (
+              <Field label="Reason" required><textarea minLength={4} maxLength={1000} rows={3} value={reason} onChange={(event) => setReason(event.target.value)} className={inputClass} placeholder={selectedAction === 'Pending Additional Documents' ? 'List the documents or corrections needed' : 'Record why this application is being closed'} required /></Field>
+            ) : !['Delivered'].includes(selectedAction) && (
+              <Field label="Staff remarks"><textarea maxLength={1000} rows={3} value={remarks} onChange={(event) => setRemarks(event.target.value)} className={inputClass} placeholder="Optional notes for the audit history" /></Field>
+            )}
+            {selectedAction === 'Completed' && <label className="flex items-start gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-xs text-green-200"><input required type="checkbox" checked={completionConfirmed} onChange={(event) => setCompletionConfirmed(event.target.checked)} className="mt-0.5 accent-green-500" /><span>I confirm the recorded certificate has been delivered or collected by the recipient shown in this application.</span></label>}
+            {selectedAction === 'Completed' && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">Completion is an internal tracking status and does not attest to government verification.</div>}
+            <div className="flex justify-end gap-2 border-t border-gray-800 pt-4"><button type="button" onClick={() => setSelectedAction('')} disabled={actionBusy} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Cancel</button><button type="submit" disabled={actionBusy || (['Rejected', 'Cancelled', 'Pending Additional Documents'].includes(selectedAction) && reason.trim().length < 4) || (selectedAction === 'Delivered' && (!deliveryForm.delivery_date || !deliveryForm.recipient.trim())) || (selectedAction === 'Completed' && !completionConfirmed)} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{actionBusy && <LoaderCircle size={15} className="animate-spin" />}{selectedAction === 'Approved' ? 'Confirm internal approval' : selectedAction === 'Rejected' ? 'Confirm rejection' : selectedAction === 'Completed' ? 'Confirm completion' : 'Confirm action'}</button></div>
           </form>
         </Dialog>
       )}

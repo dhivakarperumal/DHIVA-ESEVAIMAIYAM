@@ -95,7 +95,7 @@ async function initDB() {
         email VARCHAR(255) DEFAULT NULL,
         service_id INT NOT NULL,
         center_name VARCHAR(150) DEFAULT NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+        status VARCHAR(50) NOT NULL DEFAULT 'Submitted',
         notes TEXT DEFAULT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -114,6 +114,10 @@ async function initDB() {
       ['certificate_reference', 'VARCHAR(120) NULL'],
       ['certificate_issue_date', 'DATE NULL'],
       ['certificate_path', 'VARCHAR(500) NULL'],
+      ['certificate_source', 'VARCHAR(255) NULL'],
+      ['certificate_delivery_date', 'DATE NULL'],
+      ['certificate_recipient', 'VARCHAR(255) NULL'],
+      ['certificate_delivery_notes', 'VARCHAR(1000) NULL'],
       ['external_approval_status', "VARCHAR(40) NOT NULL DEFAULT 'Not Connected'"],
       ['completed_by', 'VARCHAR(100) NULL'],
       ['completed_at', 'DATETIME NULL'],
@@ -128,11 +132,12 @@ async function initDB() {
         await connection.execute(`ALTER TABLE applications ADD COLUMN ${column} ${definition}`);
       }
     }
-    await connection.execute('ALTER TABLE applications MODIFY status VARCHAR(50) NOT NULL DEFAULT \'Application Submitted\'');
+    await connection.execute('ALTER TABLE applications MODIFY status VARCHAR(50) NOT NULL DEFAULT \'Submitted\'');
     await connection.execute(
       `UPDATE applications SET application_number = CONCAT('APP-', LPAD(id, 8, '0')) WHERE application_number IS NULL`
     );
-    await connection.execute("UPDATE applications SET status = 'Application Submitted' WHERE status = 'Pending'");
+    await connection.execute("UPDATE applications SET status = 'Submitted' WHERE status IN ('Pending', 'Application Submitted')");
+    await connection.execute("UPDATE applications SET status = 'Pending Approval' WHERE status = 'Ready for Approval'");
     const [applicationNumberIndex] = await connection.execute(
       `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'applications' AND INDEX_NAME = 'uq_applications_number'`,

@@ -1,201 +1,96 @@
-﻿import React, { useContext, useState } from "react";
-import { NavLink, Link, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../PrivateRouter/AuthContext";
-import { StoreContext } from "../../PrivateRouter/StoreContext";
+﻿import React, { useState } from "react";
+import { NavLink, Link } from "react-router-dom";
 import PageContainer from "./PageContainer";
-import { Menu, X, User, Heart, ShoppingCart, Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import logo from "/images/logo.png";
 
+const navItems = [
+  { label: "Home", to: "/" },
+  { label: "Services", to: "/service" },
+  { label: "Documents Required", to: "/documents" },
+  { label: "Track Application", to: "/track" },
+  { label: "About Us", to: "/about" },
+  { label: "Gallery", to: "/gallery" },
+  { label: "Contact Us", to: "/contact" },
+];
+
 const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
-  const { cart, wishlist } = useContext(StoreContext);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const cartCount = cart?.length || 0;
-  const wishlistCount = wishlist?.length || 0;
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <PageContainer>
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-primary/30 bg-[#04070b] shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+      <PageContainer className="py-3">
+        <div className="flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-10 w-auto" />
-            <span className="text-xl font-bold text-green-800">QTech Solutions</span>
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-primary bg-[#0d1218] shadow-[0_0_18px_rgba(248,116,14,0.35)]">
+              <img src={logo} alt="DHIVA E-SEVAI MAIYAM logo" className="h-9 w-9 object-contain" />
+            </div>
+
+            <div className="leading-none">
+              <div className="text-2xl font-black tracking-tight text-primary">DHIVA</div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[0.22em] text-white/80 uppercase">
+                E-SEVAI MAIYAM
+              </div>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                isActive ? "text-green-800" : "hover:text-green-800"
-              }
-            >
-              Home
-            </NavLink>
-            <NavLink
-              to="/shop"
-              className={({ isActive }) =>
-                isActive ? "text-green-800" : "hover:text-green-800"
-              }
-            >
-              Shop
-            </NavLink>
-            <NavLink
-              to="/about"
-              className={({ isActive }) =>
-                isActive ? "text-green-800" : "hover:text-green-800"
-              }
-            >
-              About
-            </NavLink>
-            <NavLink
-              to="/contactus"
-              className={({ isActive }) =>
-                isActive ? "text-green-800" : "hover:text-green-800"
-              }
-            >
-              Contact
-            </NavLink>
+          <nav className="hidden items-center gap-7 text-sm font-medium text-white/80 lg:flex">
+            {navItems.map(({ label, to }) => (
+              <NavLink
+                key={label}
+                to={to}
+                className={({ isActive }) =>
+                  `transition-colors hover:text-primary ${isActive ? "text-primary" : ""}`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2">
-              <Search size={18} className="text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search products"
-                className="w-64 bg-transparent text-sm outline-none"
-              />
-            </div>
-
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate("/wishlist")}
-              className="relative text-gray-600 hover:text-green-800"
+              aria-label="Search"
+              className="hidden h-11 w-11 items-center justify-center rounded-full border border-primary/70 bg-primary/10 text-primary transition hover:bg-primary hover:text-white md:flex"
             >
-              <Heart size={22} />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-2 -right-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-                  {wishlistCount}
-                </span>
-              )}
+              <Search size={18} />
             </button>
 
             <button
               type="button"
-              onClick={() => navigate("/cart")}
-              className="relative text-gray-600 hover:text-green-800"
+              className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(248,116,14,0.35)] transition hover:scale-[1.02] hover:bg-orange-500"
             >
-              <ShoppingCart size={22} />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] text-white">
-                  {cartCount}
-                </span>
-              )}
+              Apply Now
             </button>
 
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <User size={18} />
-              {user ? (
-                <button onClick={handleLogout} className="font-semibold hover:text-green-800">
-                  Logout
-                </button>
-              ) : (
-                <Link to="/login" className="font-semibold hover:text-green-800">
-                  Sign In
-                </Link>
-              )}
-            </div>
+            <button
+              type="button"
+              aria-label="Toggle menu"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white lg:hidden"
+              onClick={() => setMobileOpen((prev) => !prev)}
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
-
-          <button
-            className="md:hidden text-gray-700"
-            onClick={() => setMobileOpen((prev) => !prev)}
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
       </PageContainer>
 
       {mobileOpen && (
-        <div className="border-t border-gray-200 bg-white md:hidden">
-          <div className="flex flex-col gap-2 px-4 py-4 text-sm text-gray-700">
-            <NavLink
-              to="/"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              Home
-            </NavLink>
-            <NavLink
-              to="/shop"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              Shop
-            </NavLink>
-            <NavLink
-              to="/about"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              About
-            </NavLink>
-            <NavLink
-              to="/contactus"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              Contact
-            </NavLink>
-            <button
-              type="button"
-              onClick={() => {
-                navigate("/wishlist");
-                setMobileOpen(false);
-              }}
-              className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              <span>Wishlist</span>
-              {wishlistCount > 0 && <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">{wishlistCount}</span>}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                navigate("/cart");
-                setMobileOpen(false);
-              }}
-              className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-100"
-            >
-              <span>Cart</span>
-              {cartCount > 0 && <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] text-white">{cartCount}</span>}
-            </button>
-            {user ? (
-              <button
-                type="button"
-                onClick={() => {
-                  handleLogout();
-                  setMobileOpen(false);
-                }}
-                className="rounded-lg bg-green-800 px-3 py-2 text-white"
-              >
-                Logout
-              </button>
-            ) : (
-              <Link
-                to="/login"
+        <div className="border-t border-primary/20 bg-[#050a10] lg:hidden">
+          <div className="flex flex-col gap-2 px-4 py-4 text-sm font-medium text-white/80">
+            {navItems.map(({ label, to }) => (
+              <NavLink
+                key={label}
+                to={to}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg bg-green-800 px-3 py-2 text-white text-center"
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-2 transition ${isActive ? "bg-primary/10 text-primary" : "hover:bg-white/5"}`
+                }
               >
-                Sign In
-              </Link>
-            )}
+                {label}
+              </NavLink>
+            ))}
           </div>
         </div>
       )}

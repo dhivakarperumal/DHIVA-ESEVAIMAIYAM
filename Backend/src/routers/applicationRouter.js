@@ -14,6 +14,7 @@ router.get('/workflow/options', controller.getWorkflowOptions);
 router.route('/').get(controller.getAllApplications).post(controller.createApplication);
 router.get('/:id/documents/:documentId/preview', controller.previewDocument);
 router.post('/:id/documents', upload.single('document'), asyncRoute(controller.uploadDocument));
+router.post('/:id/certificate', authorize('Super Admin', 'Admin', 'Manager'), upload.single('document'), asyncRoute(controller.uploadCertificate));
 router.patch('/:id/documents/:documentId', controller.reviewDocument);
 router.patch('/:id/workflow', controller.updateWorkflow);
 router.patch('/:id/assignment', authorize('Super Admin', 'Admin', 'Manager'), controller.assignStaff);

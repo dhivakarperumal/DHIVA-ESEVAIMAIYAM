@@ -45,6 +45,59 @@ const categories = [
   "Furniture",
   "Other",
 ];
+const equipmentCatalog = [
+  { name: "Desktop Computer", category: "Computer" },
+  { name: "All-in-One Computer", category: "Computer" },
+  { name: "Laptop", category: "Laptop" },
+  { name: "Computer Monitor", category: "Computer" },
+  { name: "Keyboard", category: "Computer" },
+  { name: "Mouse", category: "Computer" },
+  { name: "Computer UPS", category: "Power Backup" },
+  { name: "Laser Printer", category: "Printer" },
+  { name: "Inkjet Printer", category: "Printer" },
+  { name: "Thermal Receipt Printer", category: "Printer" },
+  { name: "Multifunction Printer", category: "Printer" },
+  { name: "Photocopier", category: "Photocopier" },
+  { name: "Flatbed Scanner", category: "Scanner" },
+  { name: "Document Scanner", category: "Scanner" },
+  { name: "Fingerprint Scanner", category: "Biometric Device" },
+  { name: "Iris Scanner", category: "Biometric Device" },
+  { name: "Biometric Device", category: "Biometric Device" },
+  { name: "Webcam", category: "Computer" },
+  { name: "Digital Camera", category: "Other" },
+  { name: "Router", category: "Router / Network" },
+  { name: "Modem", category: "Router / Network" },
+  { name: "Network Switch", category: "Router / Network" },
+  { name: "Wi-Fi Access Point", category: "Router / Network" },
+  { name: "Inverter", category: "Power Backup" },
+  { name: "Inverter Battery", category: "Power Backup" },
+  { name: "Diesel Generator", category: "Power Backup" },
+  { name: "CCTV Camera", category: "CCTV / Security" },
+  { name: "CCTV DVR / NVR", category: "CCTV / Security" },
+  { name: "Projector", category: "Projector" },
+  { name: "Projector Screen", category: "Projector" },
+  { name: "Smartphone", category: "Other" },
+  { name: "Tablet", category: "Other" },
+  { name: "Point of Sale (POS) Terminal", category: "Other" },
+  { name: "Barcode Scanner", category: "Scanner" },
+  { name: "Lamination Machine", category: "Other" },
+  { name: "Document Shredder", category: "Other" },
+  { name: "Token Display", category: "Other" },
+  { name: "Token Printer", category: "Printer" },
+  { name: "External Hard Drive", category: "Computer" },
+  { name: "Network Attached Storage (NAS)", category: "Router / Network" },
+  { name: "Server", category: "Computer" },
+  { name: "Server Rack", category: "Router / Network" },
+  { name: "Air Conditioner", category: "Other" },
+  { name: "Ceiling Fan", category: "Other" },
+  { name: "Office Desk", category: "Furniture" },
+  { name: "Service Counter", category: "Furniture" },
+  { name: "Office Chair", category: "Furniture" },
+  { name: "Visitor Chair", category: "Furniture" },
+  { name: "Filing Cabinet", category: "Furniture" },
+  { name: "Fire Extinguisher", category: "Other" },
+  { name: "First Aid Kit", category: "Other" },
+];
 const maintenanceStatuses = ["Scheduled", "In Progress", "Completed", "Cancelled"];
 const maintenanceEquipmentStatuses = ["Working", "Under Maintenance", "Damaged", "Not Working", "Retired"];
 const pageSizes = [10, 25, 50];
@@ -142,6 +195,8 @@ function Field({
   required = false,
   type = "text",
   options,
+  suggestions,
+  onChange,
   span = false,
 }) {
   return (
@@ -176,16 +231,25 @@ function Field({
       ) : (
         <input
           name={name}
+          list={suggestions ? `${name}-suggestions` : undefined}
           required={required}
           type={type}
           min={type === "number" ? (name === "quantity" ? "1" : "0") : undefined}
           step={name === "purchase_price" ? "0.01" : name === "quantity" ? "1" : undefined}
           value={form[name]}
-          onChange={(e) =>
-            setForm((current) => ({ ...current, [name]: e.target.value }))
-          }
+          onChange={(e) => {
+            setForm((current) => ({ ...current, [name]: e.target.value }));
+            onChange?.(e.target.value);
+          }}
           className={inputClass}
         />
+      )}
+      {suggestions && (
+        <datalist id={`${name}-suggestions`}>
+          {suggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
       )}
     </label>
   );
@@ -931,7 +995,17 @@ const EquipmentManagement = () => {
                     form={form}
                     setForm={setForm}
                     required
+                    suggestions={equipmentCatalog.map((item) => item.name)}
+                    onChange={(name) => {
+                      const match = equipmentCatalog.find((item) => item.name === name);
+                      if (match) {
+                        setForm((current) => ({ ...current, category: match.category }));
+                      }
+                    }}
                   />
+                  <p className="-mt-2 text-xs text-slate-500 sm:col-span-2">
+                    Common E-Sevai centre equipment is available as suggestions. Select a preset or enter a custom name; register only equipment your centre actually owns.
+                  </p>
                   <Field
                     label="Equipment Category"
                     name="category"
