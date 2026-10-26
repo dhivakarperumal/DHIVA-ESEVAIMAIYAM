@@ -243,15 +243,10 @@ const Login = () => {
           </form>
         </div>
 
-        {/* Footer Text */}
-        <div className="absolute bottom-4 right-4 lg:right-8 text-[10px] text-gray-600">
-          &copy; 2025 Dhiva E-Sevai Maiyam. All rights reserved.
-        </div>
       </div>
     </div>
   );
 };
 
 export default Login;
-
 
