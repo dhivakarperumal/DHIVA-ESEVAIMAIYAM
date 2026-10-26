@@ -34,7 +34,6 @@ import ProfileSettings from './Admin/ProfileSettings.jsx'
 import AdminSettings from './Admin/AdminSettings.jsx'
 import EmployeeLayout from './Employees/EmployeePanel.jsx'
 import { AuthProvider } from './PrivateRouter/AuthContext.jsx'
-import { StoreProvider } from './PrivateRouter/StoreContext.jsx'
 
 // Normalize URLs when using hash routing so legacy or direct /admin paths map to /#/admin
 const { pathname, search, hash } = window.location
@@ -194,9 +193,7 @@ const router = createHashRouter([
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <StoreProvider>
-        <RouterProvider router={router} />
-      </StoreProvider>
+      <RouterProvider router={router} />
     </AuthProvider>
   </StrictMode>,
 )
