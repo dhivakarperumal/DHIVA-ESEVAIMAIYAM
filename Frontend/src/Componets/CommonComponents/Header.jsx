@@ -1,4 +1,3 @@
-import React from "react";
 import { Clock3, Globe, MapPin, Mail, MessageCircle, Phone, Play, Send } from "lucide-react";
 import PageContainer from "./PageContainer";
 
@@ -16,12 +15,12 @@ const Header = () => {
         <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-200 sm:text-xs">
           <span className="inline-flex items-center gap-2">
             <MapPin size={14} className="text-white/80" />
-            Tamil Nadu, India
+            Your Town, Tamil Nadu, India
           </span>
 
           <span className="hidden items-center gap-2 md:inline-flex">
             <Clock3 size={14} className="text-white/80" />
-            Mon - Sat: 9:00 AM - 8:00 PM
+            Mon - Sat: 9:00 AM - 8:00 PM · Sun: 9:00 AM - 1:00 PM
           </span>
         </div>
 
@@ -31,9 +30,9 @@ const Header = () => {
             +91 98765 43210
           </a>
 
-          <a href="mailto:dhivakar@gmail.com" className="hidden items-center gap-2 transition hover:text-white md:inline-flex">
+          <a href="mailto:dhivakar305@gmail.com" className="hidden items-center gap-2 transition hover:text-white md:inline-flex">
             <Mail size={14} className="text-white/80" />
-            dhivakar@gmail.com
+            dhivakar305@gmail.com
           </a>
         </div>
 

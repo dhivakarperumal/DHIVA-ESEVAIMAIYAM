@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import PageContainer from "./PageContainer";
 import { Menu, Search, X } from "lucide-react";
@@ -57,12 +57,12 @@ const Navbar = () => {
               <Search size={18} />
             </button>
 
-            <button
-              type="button"
+            <Link
+              to="/contact"
               className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(248,116,14,0.35)] transition hover:scale-[1.02] hover:bg-orange-500"
             >
-              Apply Now
-            </button>
+              Online Application
+            </Link>
 
             <button
               type="button"

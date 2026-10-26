@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Clock3, Mail, MapPin, Phone } from "lucide-react";
 import {
   FaFacebookF,
   FaInstagram,
@@ -31,11 +31,11 @@ const socialLinks = [
   { label: "Facebook", Icon: FaFacebookF, href: "https://www.facebook.com/" },
   { label: "Instagram", Icon: FaInstagram, href: "https://www.instagram.com/" },
   { label: "YouTube", Icon: FaYoutube, href: "https://www.youtube.com/" },
-  { label: "WhatsApp", Icon: FaWhatsapp, href: "https://wa.me/919659133504" },
+  { label: "WhatsApp", Icon: FaWhatsapp, href: "https://wa.me/919876543210" },
 ];
 
 const Footer = () => {
-  const address = "No.58 Vaitheeshwaran Nagar, Tirupattur - 635653";
+  const address = "123, Main Road, Your Town, Tamil Nadu, India";
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
@@ -116,20 +116,20 @@ const Footer = () => {
             <ul className="mt-4 space-y-4">
               <li>
                 <a
-                  href="tel:+919659133504"
+                  href="tel:+919876543210"
                   className="flex items-start gap-3 text-sm text-slate-300 transition hover:text-primary"
                 >
                   <Phone size={17} className="mt-0.5 shrink-0 text-primary" />
-                  <span>+91 96591 33504</span>
+                  <span>+91 98765 43210</span>
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:info@qtechx.com"
+                  href="mailto:dhivakar305@gmail.com"
                   className="flex items-start gap-3 break-all text-sm text-slate-300 transition hover:text-primary"
                 >
                   <Mail size={17} className="mt-0.5 shrink-0 text-primary" />
-                  <span>info@qtechx.com</span>
+                  <span>dhivakar305@gmail.com</span>
                 </a>
               </li>
               <li>
@@ -140,8 +140,12 @@ const Footer = () => {
                   className="flex items-start gap-3 text-sm leading-6 text-slate-300 transition hover:text-primary"
                 >
                   <MapPin size={18} className="mt-0.5 shrink-0 text-primary" />
-                  <span>{address}, Tamil Nadu, India</span>
+                  <span>{address}</span>
                 </a>
+              </li>
+              <li className="flex items-start gap-3 text-sm leading-6 text-slate-300">
+                <Clock3 size={17} className="mt-0.5 shrink-0 text-primary" />
+                <span>Mon - Sat: 9:00 AM - 8:00 PM<br />Sunday: 9:00 AM - 1:00 PM</span>
               </li>
             </ul>
           </div>
