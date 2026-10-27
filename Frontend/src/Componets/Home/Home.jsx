@@ -12,9 +12,8 @@ const Home = () => {
     <main className="bg-[#07090c] text-white">
       <Hero />
       <HomeServicesSwiper />
-      <HomeRequiredDocumentsSwiper />
-
       <AboutUs />
+      <HomeRequiredDocumentsSwiper />
       <WhyChooseSection />
       <FaqUpdates />
       <GovernmentServicesBanner />
