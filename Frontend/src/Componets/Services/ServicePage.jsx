@@ -1,22 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  AlertCircle,
   ArrowRight,
-  BadgeCheck,
   Banknote,
   BriefcaseBusiness,
   Check,
-  ClipboardCheck,
   FileBadge,
   FileText,
-  Fingerprint,
   Landmark,
   Laptop,
   Lightbulb,
+  LoaderCircle,
   MapPinned,
   MessageCircle,
   Printer,
   Search,
-  ShieldCheck,
   Sparkles,
   UserRoundSearch,
   UsersRound,
@@ -25,118 +23,24 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
 import { CONTACT_WHATSAPP_NUMBER } from "../../contactInfo";
+import api from "../../api";
 
-const categories = [
-  { name: "All Services", Icon: Sparkles },
-  { name: "Certificates", Icon: FileBadge },
-  { name: "Government Applications", Icon: Landmark },
-  { name: "Land Records", Icon: MapPinned },
-  { name: "Utility Services", Icon: Lightbulb },
-  { name: "Printing & Scanning", Icon: Printer },
-  { name: "Financial Services", Icon: Banknote },
-  { name: "Other Services", Icon: BriefcaseBusiness },
-];
+const categoryIcons = {
+  Certificates: FileBadge,
+  "Government Applications": Landmark,
+  "Land Records": MapPinned,
+  "Utility Services": Lightbulb,
+  "Printing & Scanning": Printer,
+  "Financial Services": Banknote,
+  "Other Services": BriefcaseBusiness,
+};
 
-const services = [
-  {
-    title: "Community Certificate",
-    category: "Certificates",
-    description: "Assistance with community certificate applications and corrections.",
-    tasks: ["New application", "Correction", "Status tracking"],
-    Icon: UsersRound,
-  },
-  {
-    title: "Income Certificate",
-    category: "Certificates",
-    description: "Get guidance with income certificate applications and updates.",
-    tasks: ["New application", "Duplicate copy", "Status tracking"],
-    Icon: FileBadge,
-  },
-  {
-    title: "Nativity Certificate",
-    category: "Certificates",
-    description: "Support preparing and submitting your nativity certificate request.",
-    tasks: ["New application", "Name correction", "Status tracking"],
-    Icon: BadgeCheck,
-  },
-  {
-    title: "Residence Certificate",
-    category: "Certificates",
-    description: "Help with residence proof certificate application support.",
-    tasks: ["New application", "Address update", "Status tracking"],
-    Icon: ShieldCheck,
-  },
-  {
-    title: "Patta / Chitta",
-    category: "Land Records",
-    description: "Assistance with Patta, Chitta, Adangal and land record services.",
-    tasks: ["Patta application", "Chitta copy", "EC copy"],
-    Icon: MapPinned,
-  },
-  {
-    title: "Ration Card Services",
-    category: "Government Applications",
-    description: "Support with ration card member and address updates.",
-    tasks: ["New ration card", "Member addition", "Address change"],
-    Icon: ClipboardCheck,
-  },
-  {
-    title: "Voter ID Services",
-    category: "Government Applications",
-    description: "Assistance with voter ID registration and corrections.",
-    tasks: ["New voter ID", "Address change", "Correction"],
-    Icon: UserRoundSearch,
-  },
-  {
-    title: "Aadhaar Services",
-    category: "Government Applications",
-    description: "Guidance with Aadhaar enrolment and available update services.",
-    tasks: ["New enrolment", "Address update", "Mobile number update"],
-    Icon: Fingerprint,
-  },
-  {
-    title: "PAN Card Services",
-    category: "Financial Services",
-    description: "Help with PAN card applications and corrections.",
-    tasks: ["New PAN card", "Correction", "Reprint"],
-    Icon: FileText,
-  },
-  {
-    title: "Passport Services",
-    category: "Government Applications",
-    description: "Assistance with passport applications and document guidance.",
-    tasks: ["New application", "Renewal", "Document support"],
-    Icon: BriefcaseBusiness,
-  },
-  {
-    title: "Printing & Scanning",
-    category: "Printing & Scanning",
-    description: "Convenient printing, scanning and document finishing services.",
-    tasks: ["Black & white / colour", "Scanning", "Lamination"],
-    Icon: Printer,
-  },
-  {
-    title: "Online & Utility Services",
-    category: "Utility Services",
-    description: "Support for common online forms and government utility services.",
-    tasks: ["Electricity bill payment", "Water bill payment", "Online forms"],
-    Icon: Laptop,
-  },
-  {
-    title: "Document Support",
-    category: "Other Services",
-    description: "Get help understanding, preparing and organising your documents.",
-    tasks: ["Document checklist", "Form assistance", "Application guidance"],
-    Icon: FileText,
-  },
-  {
-    title: "Application Guidance",
-    category: "Other Services",
-    description: "Friendly guidance to help you understand the application process.",
-    tasks: ["Service guidance", "Application support", "Next-step advice"],
-    Icon: MessageCircle,
-  },
-];
+const getDocumentNames = (documents) => {
+  if (!Array.isArray(documents)) return [];
+  return documents
+    .map((document) => (typeof document === "string" ? document : document?.name))
+    .filter(Boolean);
+};
 
 const steps = [
   {
@@ -195,24 +99,84 @@ const benefits = [
 ];
 
 const ServicePage = () => {
+  const [apiServices, setApiServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Services");
   const [searchParams, setSearchParams] = useSearchParams();
   const searchTerm = searchParams.get("search") ?? "";
 
+  useEffect(() => {
+    let active = true;
+    api
+      .get("/services")
+      .then(({ data }) => {
+        if (data.success === false || !Array.isArray(data.data)) {
+          throw new Error(data.message || "The services response was invalid.");
+        }
+        if (active) setApiServices(data.data);
+      })
+      .catch((error) => {
+        if (active) {
+          setServicesError(
+            error.response?.data?.message || error.message || "Unable to load services."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setServicesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const availableCategories = [
+      ...new Set(
+        apiServices
+          .filter((service) => service.status?.toLowerCase() === "active")
+          .map((service) => service.category)
+          .filter(Boolean)
+      ),
+    ];
+    return [
+      { name: "All Services", Icon: Sparkles },
+      ...availableCategories.map((name) => ({
+        name,
+        Icon: categoryIcons[name] || BriefcaseBusiness,
+      })),
+    ];
+  }, [apiServices]);
+
   const filteredServices = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    return services.filter((service) => {
-      const matchesCategory =
-        selectedCategory === "All Services" || service.category === selectedCategory;
-      const matchesSearch =
-        !query ||
-        [service.title, service.category, service.description, ...service.tasks]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      return matchesCategory && matchesSearch;
-    });
-  }, [searchTerm, selectedCategory]);
+    return apiServices
+      .filter((service) => service.status?.toLowerCase() === "active")
+      .map((service) => ({
+        id: service.id,
+        title: service.service_name,
+        category: service.category,
+        description:
+          service.description ||
+          service.document_instructions ||
+          "Contact us for assistance with this service.",
+        tasks: getDocumentNames(service.required_documents),
+        Icon: categoryIcons[service.category] || BriefcaseBusiness,
+      }))
+      .filter((service) => {
+        const matchesCategory =
+          selectedCategory === "All Services" || service.category === selectedCategory;
+        const matchesSearch =
+          !query ||
+          [service.title, service.category, service.description, ...service.tasks]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        return matchesCategory && matchesSearch;
+      });
+  }, [apiServices, searchTerm, selectedCategory]);
 
   const scrollToServices = () => {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
@@ -334,11 +298,22 @@ const ServicePage = () => {
             })}
           </div>
 
-          {filteredServices.length > 0 ? (
+          {servicesLoading ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#101317] px-4 py-12 text-sm text-slate-300">
+              <LoaderCircle size={18} className="animate-spin text-primary" />
+              Loading services...
+            </div>
+          ) : servicesError ? (
+            <div role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-8 text-center">
+              <AlertCircle size={24} className="mx-auto text-red-400" />
+              <p className="mt-3 font-semibold text-white">Unable to load services</p>
+              <p className="mt-1 text-sm text-slate-300">{servicesError}</p>
+            </div>
+          ) : filteredServices.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {filteredServices.map(({ title, category, description, tasks, Icon }) => (
+              {filteredServices.map(({ id, title, category, description, tasks, Icon }) => (
                 <article
-                  key={title}
+                  key={id}
                   className="group flex min-h-[205px] flex-col rounded-xl border border-white/10 bg-[#101317] p-4 transition hover:-translate-y-0.5 hover:border-primary/50 hover:bg-[#15171a]"
                 >
                   <div className="flex items-start gap-3">
