@@ -170,27 +170,15 @@ const DocumentsPage = () => {
   return (
     <main className="bg-[#080a0d] text-white">
       <PageContainer className="py-5 sm:py-7">
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-          {categories.map(({ name, Icon }) => {
-            const active = selectedCategory === name;
-            return (
-              <button
-                key={name}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setSelectedCategory(name)}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2.5 text-xs font-semibold transition sm:text-sm ${
-                  active
-                    ? "border-primary bg-primary text-white"
-                    : "border-white/10 bg-[#111418] text-slate-300 hover:border-primary/60 hover:text-white"
-                }`}
-              >
-                <Icon size={16} />
-                {name}
-              </button>
-            );
-          })}
-        </div>
+            <div className="mb-8">
+            <h2 id="documents-heading" className="text-lg font-bold sm:text-xl">
+              Document Required for Government Services
+            </h2>
+            <p className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+              <span className="h-1 w-9 rounded-full bg-primary" />
+              Select a service below to view the list of required documents.
+            </p>
+          </div>
 
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-white/15 bg-[#111418] px-3 text-slate-400 transition focus-within:border-primary sm:max-w-md">
@@ -239,18 +227,33 @@ const DocumentsPage = () => {
               </button>
             </div>
           </div>
+
+          
+        </div>
+         <div className="mb-9 flex gap-2 overflow-x-auto pb-1">
+          {categories.map(({ name, Icon }) => {
+            const active = selectedCategory === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setSelectedCategory(name)}
+                className={`flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2.5 text-xs font-semibold transition sm:text-sm ${
+                  active
+                    ? "border-primary bg-primary text-white"
+                    : "border-white/10 bg-[#111418] text-slate-300 hover:border-primary/60 hover:text-white"
+                }`}
+              >
+                <Icon size={16} />
+                {name}
+              </button>
+            );
+          })}
         </div>
 
         <section aria-labelledby="documents-heading">
-          <div className="mb-3">
-            <h2 id="documents-heading" className="text-lg font-bold sm:text-xl">
-              Document Required for Government Services
-            </h2>
-            <p className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-1 w-9 rounded-full bg-primary" />
-              Select a service below to view the list of required documents.
-            </p>
-          </div>
+     
 
           {servicesLoading ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#101317] px-4 py-10 text-sm text-slate-300" role="status">

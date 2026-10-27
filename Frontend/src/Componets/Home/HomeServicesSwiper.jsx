@@ -12,12 +12,11 @@ import {
   Printer,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import PageContainer from "../CommonComponents/PageContainer";
 import api from "../../api";
 import "swiper/css";
-import "swiper/css/pagination";
 
 const categoryIcons = {
   Certificates: FileBadge,
@@ -111,14 +110,13 @@ const HomeServicesSwiper = () => {
           </p>
         ) : (
           <Swiper
-            modules={[Autoplay, Pagination]}
+            modules={[Autoplay]}
             loop={services.length > 1}
             autoplay={{
               delay: 3500,
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
             }}
-            pagination={{ clickable: true }}
             spaceBetween={14}
             breakpoints={{
               0: { slidesPerView: 1.15 },
@@ -127,7 +125,7 @@ const HomeServicesSwiper = () => {
               900: { slidesPerView: 3 },
               1200: { slidesPerView: 4 },
             }}
-            className="!pb-12 [&_.swiper-pagination-bullet]:!bg-white/60 [&_.swiper-pagination-bullet-active]:!bg-primary"
+            className="!pb-2"
           >
             {services.map((service) => {
               const Icon = categoryIcons[service.category] || FileText;
