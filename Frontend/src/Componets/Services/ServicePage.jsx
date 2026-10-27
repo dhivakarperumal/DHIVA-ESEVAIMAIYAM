@@ -22,7 +22,7 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
 import { CONTACT_WHATSAPP_NUMBER } from "../../contactInfo";
 
@@ -196,7 +196,8 @@ const benefits = [
 
 const ServicePage = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Services");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get("search") ?? "";
 
   const filteredServices = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -292,7 +293,18 @@ const ServicePage = () => {
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  const query = event.target.value;
+                  setSearchParams((currentParams) => {
+                    const nextParams = new URLSearchParams(currentParams);
+                    if (query) {
+                      nextParams.set("search", query);
+                    } else {
+                      nextParams.delete("search");
+                    }
+                    return nextParams;
+                  }, { replace: true });
+                }}
                 placeholder="Search services..."
                 aria-label="Search services"
                 className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
