@@ -91,6 +91,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS applications (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         applicant_name VARCHAR(150) NOT NULL,
+        applicant_type VARCHAR(50) NOT NULL DEFAULT 'Individual',
         mobile VARCHAR(20) DEFAULT NULL,
         email VARCHAR(255) DEFAULT NULL,
         service_id INT NOT NULL,
@@ -106,6 +107,7 @@ async function initDB() {
     `);
     const applicationColumns = [
       ['application_number', 'VARCHAR(40) NULL'],
+      ['applicant_type', "VARCHAR(50) NOT NULL DEFAULT 'Individual'"],
       ['assigned_staff_id', 'INT NULL'],
       ['status_reason', 'VARCHAR(1000) NULL'],
       ['approval_remarks', 'TEXT NULL'],
@@ -295,6 +297,7 @@ async function initDB() {
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS service_required_documents (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        document_key VARCHAR(64) DEFAULT NULL,
         service_id INT NOT NULL,
         document_name VARCHAR(255) NOT NULL,
         document_type VARCHAR(50) NOT NULL,
@@ -304,7 +307,11 @@ async function initDB() {
         accepted_formats TEXT NOT NULL,
         max_file_size VARCHAR(20) NOT NULL DEFAULT '5 MB',
         number_of_documents VARCHAR(20) NOT NULL DEFAULT 'Single',
+        min_files INT NOT NULL DEFAULT 1,
+        max_files INT NOT NULL DEFAULT 1,
         issuing_authority VARCHAR(100) NOT NULL DEFAULT 'Other',
+        conditional_requirement TEXT DEFAULT NULL,
+        alternative_group VARCHAR(100) DEFAULT NULL,
         display_order INT NOT NULL DEFAULT 1,
         status VARCHAR(20) NOT NULL DEFAULT 'Active',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -313,6 +320,103 @@ async function initDB() {
         FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    const ensureColumn = async (table, column, definition) => {
+      const [columns] = await connection.execute(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [dbConfig.database, table, column]
+      );
+      if (!columns.length) await connection.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    };
+
+    await ensureColumn('service_required_documents', 'document_key', 'VARCHAR(64) DEFAULT NULL');
+    await ensureColumn('service_required_documents', 'min_files', 'INT NOT NULL DEFAULT 1');
+    await ensureColumn('service_required_documents', 'max_files', 'INT NOT NULL DEFAULT 1');
+    await ensureColumn('service_required_documents', 'conditional_requirement', 'TEXT DEFAULT NULL');
+    await ensureColumn('service_required_documents', 'alternative_group', 'VARCHAR(100) DEFAULT NULL');
+    await ensureColumn('application_documents', 'service_document_id', 'INT DEFAULT NULL');
+    await connection.execute(
+      `UPDATE service_required_documents SET document_key = UUID() WHERE document_key IS NULL OR document_key = ''`
+    );
+    const [documentKeyIndex] = await connection.execute(
+      `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'service_required_documents' AND INDEX_NAME = 'uq_service_document_key'`,
+      [dbConfig.database]
+    );
+    if (!documentKeyIndex.length) {
+      await connection.execute('ALTER TABLE service_required_documents ADD UNIQUE KEY uq_service_document_key (document_key)');
+    }
+
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS application_document_requirements (
+        application_id INT NOT NULL,
+        service_document_id INT NOT NULL,
+        applicable TINYINT(1) NOT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (application_id, service_document_id),
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+        FOREIGN KEY (service_document_id) REFERENCES service_required_documents(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    const [communityServices] = await connection.execute(
+      `SELECT id FROM services
+       WHERE service_code = 'REV-101' OR LOWER(TRIM(service_name)) = 'community certificate'
+       ORDER BY CASE WHEN service_code = 'REV-101' THEN 0 ELSE 1 END
+       LIMIT 1`
+    );
+    if (communityServices.length) {
+      const serviceId = communityServices[0].id;
+      const starterDocuments = [
+        ['applicant-photo', 'Applicant Photo', 'Identity Proof', 'Required', ['JPG', 'JPEG', 'PNG'], 1, 1, null, null],
+        ['aadhaar-card-identity-proof', 'Aadhaar Card / Accepted Identity Proof', 'Identity Proof', 'Required', ['PDF', 'JPG', 'JPEG', 'PNG'], 2, 1, null, null],
+        ['address-proof', 'Address Proof', 'Address Proof', 'Required', ['PDF', 'JPG', 'JPEG', 'PNG'], 3, 1, null, null],
+        ['father-community-certificate', "Father's Community Certificate", 'Certificate', 'Optional', ['PDF', 'JPG', 'JPEG', 'PNG'], 4, 0, null, 'family-community-proof'],
+        ['mother-community-certificate', "Mother's Community Certificate", 'Certificate', 'Optional', ['PDF', 'JPG', 'JPEG', 'PNG'], 5, 0, null, 'family-community-proof'],
+        ['brother-community-certificate', "Brother's Community Certificate", 'Certificate', 'Optional', ['PDF', 'JPG', 'JPEG', 'PNG'], 6, 0, null, 'family-community-proof'],
+        ['sister-community-certificate', "Sister's Community Certificate", 'Certificate', 'Optional', ['PDF', 'JPG', 'JPEG', 'PNG'], 7, 0, null, 'family-community-proof'],
+        ['applicant-self-declaration', 'Applicant Self-Declaration', 'Supporting Document', 'Required', ['PDF', 'JPG', 'JPEG', 'PNG'], 8, 1, null, null],
+        ['dnc-certificate-if-applicable', 'DNC Certificate, if applicable', 'Certificate', 'Conditional', ['PDF', 'JPG', 'JPEG', 'PNG'], 9, 1, 'Required only when applicable to the applicant.', null],
+        ['other-supporting-document', 'Other Supporting Document', 'Supporting Document', 'Optional', ['PDF', 'JPG', 'JPEG', 'PNG'], 10, 0, null, null],
+      ];
+      for (const [key, name, type, required, accepted, order, minimum, condition, alternativeGroup] of starterDocuments) {
+        const [existing] = await connection.execute(
+          'SELECT id FROM service_required_documents WHERE service_id = ? AND LOWER(document_name) = LOWER(?)',
+          [serviceId, name]
+        );
+        if (!existing.length) {
+          await connection.execute(
+            `INSERT INTO service_required_documents
+             (document_key, service_id, document_name, document_type, required_status, applicant_type,
+              document_description, accepted_formats, max_file_size, number_of_documents, min_files,
+              max_files, issuing_authority, conditional_requirement, alternative_group, display_order, status)
+             VALUES (?, ?, ?, ?, ?, 'All', NULL, ?, '5 MB', 'Single', ?, 1, 'Government Department', ?, ?, ?, 'Active')`,
+            [key, serviceId, name, type, required, JSON.stringify(accepted), minimum, condition, alternativeGroup, order]
+          );
+        }
+      }
+    }
+
+    const [applicationDocumentIndex] = await connection.execute(
+      `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'application_documents' AND INDEX_NAME = 'idx_application_doc_config'`,
+      [dbConfig.database]
+    );
+    if (!applicationDocumentIndex.length) {
+      await connection.execute('ALTER TABLE application_documents ADD INDEX idx_application_doc_config (service_document_id)');
+    }
+    const [applicationDocumentForeignKey] = await connection.execute(
+      `SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'application_documents'
+         AND COLUMN_NAME = 'service_document_id' AND REFERENCED_TABLE_NAME = 'service_required_documents'`,
+      [dbConfig.database]
+    );
+    if (!applicationDocumentForeignKey.length) {
+      await connection.execute(`ALTER TABLE application_documents
+        ADD CONSTRAINT fk_application_document_service_config
+        FOREIGN KEY (service_document_id) REFERENCES service_required_documents(id) ON DELETE SET NULL`);
+    }
 
     // --- Expense Management Tables ---
 

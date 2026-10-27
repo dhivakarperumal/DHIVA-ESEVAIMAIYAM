@@ -113,7 +113,7 @@ function Dialog({ title, description, onClose, children, wide = false }) {
 }
 
 const emptyApplication = {
-  applicant_name: '', mobile: '', email: '', service_id: '', center_name: '', notes: '',
+  applicant_name: '', applicant_type: 'Individual', mobile: '', email: '', service_id: '', center_name: '', notes: '',
 };
 
 export default function Applications({ certificateMode = false }) {
@@ -137,6 +137,11 @@ export default function Applications({ certificateMode = false }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [applicationForm, setApplicationForm] = useState(emptyApplication);
+  const [applicationRequirements, setApplicationRequirements] = useState([]);
+  const [applicationFiles, setApplicationFiles] = useState({});
+  const [applicableDocuments, setApplicableDocuments] = useState({});
+  const [requirementsLoading, setRequirementsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
   const [selectedAction, setSelectedAction] = useState('');
@@ -144,7 +149,7 @@ export default function Applications({ certificateMode = false }) {
   const [actionBusy, setActionBusy] = useState(false);
   const [assignment, setAssignment] = useState('');
   const [uploadDocumentId, setUploadDocumentId] = useState('');
-  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadFiles, setUploadFiles] = useState([]);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [documentReview, setDocumentReview] = useState(null);
   const [reviewRemarks, setReviewRemarks] = useState('');
@@ -158,6 +163,12 @@ export default function Applications({ certificateMode = false }) {
   const [deliveryForm, setDeliveryForm] = useState({
     delivery_date: '', recipient: '', delivery_notes: '',
   });
+  const selectedUploadRequirement = details?.required_documents?.find(
+    (document) => String(document.id) === uploadDocumentId
+  );
+  const applicableApplicationRequirements = applicationRequirements.filter((document) =>
+    document.applicant_type === 'All' || document.applicant_type === applicationForm.applicant_type
+  );
 
   const params = useMemo(() => ({
     search: filters.search.trim() || undefined,
@@ -217,6 +228,24 @@ export default function Applications({ certificateMode = false }) {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadOptions, loadSummary]);
+
+  useEffect(() => {
+    if (!isAddOpen || !applicationForm.service_id) return undefined;
+    let active = true;
+    api.get('/service-documents', {
+      params: { service_id: applicationForm.service_id, active: true },
+    }).then(({ data }) => {
+      if (active) setApplicationRequirements(data.data || []);
+    }).catch((error) => {
+      if (active) {
+        setApplicationRequirements([]);
+        toast.error(error.response?.data?.message || 'Unable to load this service document checklist.');
+      }
+    }).finally(() => {
+      if (active) setRequirementsLoading(false);
+    });
+    return () => { active = false; };
+  }, [applicationForm.service_id, isAddOpen]);
 
   const reloadCurrentApplication = useCallback(async (applicationId) => {
     const [{ data: detailResponse }] = await Promise.all([
@@ -302,23 +331,83 @@ export default function Applications({ certificateMode = false }) {
 
   const submitDocument = async (event) => {
     event.preventDefault();
-    if (!details || !uploadDocumentId || !uploadFile) return;
-    const formData = new FormData();
-    formData.append('document_name', uploadDocumentId);
-    formData.append('document', uploadFile);
+    if (!details || !uploadDocumentId || !uploadFiles.length) return;
+    const requirement = details.required_documents.find((item) => String(item.id) === uploadDocumentId);
+    if (!requirement) {
+      toast.error('Select a document from this service checklist.');
+      return;
+    }
+    const previousCount = details.documents.filter((item) => (
+      item.service_document_id
+        ? String(item.service_document_id) === String(requirement.id)
+        : item.document_name.toLowerCase() === requirement.document_name.toLowerCase()
+    )).length;
+    if (previousCount + uploadFiles.length > Number(requirement.max_files || 1)) {
+      toast.error(`This document accepts at most ${requirement.max_files} file(s).`);
+      return;
+    }
+    const maxBytes = Number.parseFloat(requirement.max_file_size) * 1024 * 1024;
+    for (const file of uploadFiles) {
+      const extension = file.name.split('.').pop()?.toUpperCase();
+      if (!requirement.accepted_formats?.includes(extension) || file.size > maxBytes) {
+        toast.error(`${file.name} does not match the configured format or ${requirement.max_file_size} file-size limit.`);
+        return;
+      }
+    }
     setUploadBusy(true);
+    setUploadProgress({ current: 0, total: uploadFiles.length, percent: 0 });
     try {
-      await api.post(`/applications/${details.id}/documents`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      toast.success('Document securely uploaded for review.');
+      for (const [index, file] of uploadFiles.entries()) {
+        const formData = new FormData();
+        formData.append('service_document_id', requirement.id);
+        formData.append('document_name', requirement.document_name);
+        formData.append('document', file);
+        setUploadProgress({ current: index + 1, total: uploadFiles.length, percent: 0 });
+        await api.post(`/applications/${details.id}/documents`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progress) => {
+            if (progress.total) setUploadProgress({
+              current: index + 1,
+              total: uploadFiles.length,
+              percent: Math.round((progress.loaded * 100) / progress.total),
+            });
+          },
+        });
+      }
+      toast.success(`${uploadFiles.length} document file(s) securely uploaded for review.`);
       setUploadDocumentId('');
-      setUploadFile(null);
+      setUploadFiles([]);
       await reloadCurrentApplication(details.id);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to upload document.');
     } finally {
       setUploadBusy(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const saveApplicability = async (requiredDocument, applicable) => {
+    if (!details) return;
+    try {
+      await api.post(`/applications/${details.id}/document-requirements`, {
+        service_document_id: requiredDocument.id,
+        applicable,
+      });
+      await reloadCurrentApplication(details.id);
+      toast.success('Conditional requirement saved.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to save applicability.');
+    }
+  };
+
+  const removeApplicationDocument = async (document) => {
+    if (!details || !window.confirm(`Remove "${document.original_name}" from this application?`)) return;
+    try {
+      await api.delete(`/applications/${details.id}/documents/${document.id}`);
+      toast.success('Uploaded document removed.');
+      await reloadCurrentApplication(details.id);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to remove uploaded document.');
     }
   };
 
@@ -478,19 +567,123 @@ export default function Applications({ certificateMode = false }) {
 
   const addApplication = async (event) => {
     event.preventDefault();
+    if (requirementsLoading) return;
+    const applicableRequirements = applicableApplicationRequirements.filter((document) =>
+      document.required_status !== 'Conditional' || applicableDocuments[document.id] === 'yes'
+    );
+    for (const document of applicableApplicationRequirements.filter((item) => item.required_status === 'Conditional')) {
+      if (!['yes', 'no'].includes(applicableDocuments[document.id])) {
+        toast.error(`Choose whether "${document.document_name}" applies to this applicant.`);
+        return;
+      }
+    }
+    for (const document of applicableRequirements) {
+      const files = applicationFiles[document.id] || [];
+      const required = document.required_status === 'Required' || document.required_status === 'Conditional';
+      if (required && !document.alternative_group && files.length < Number(document.min_files || 1)) {
+        toast.error(`Upload at least ${document.min_files || 1} file(s) for "${document.document_name}".`);
+        return;
+      }
+      if (files.length > Number(document.max_files || 1)) {
+        toast.error(`"${document.document_name}" accepts at most ${document.max_files} file(s).`);
+        return;
+      }
+      const maxBytes = Number.parseFloat(document.max_file_size) * 1024 * 1024;
+      for (const file of files) {
+        const extension = file.name.split('.').pop()?.toUpperCase();
+        if (!document.accepted_formats?.includes(extension)) {
+          toast.error(`${file.name} is not an accepted format for "${document.document_name}".`);
+          return;
+        }
+        if (file.size > maxBytes) {
+          toast.error(`${file.name} exceeds the ${document.max_file_size} limit for "${document.document_name}".`);
+          return;
+        }
+      }
+    }
+    const alternativeGroups = new Set(
+      applicableRequirements.map((document) => document.alternative_group).filter(Boolean)
+    );
+    for (const group of alternativeGroups) {
+      const count = applicableRequirements
+        .filter((document) => document.alternative_group === group)
+        .reduce((total, document) => total + (applicationFiles[document.id] || []).length, 0);
+      if (count < 1) {
+        const labels = applicableRequirements.filter((document) => document.alternative_group === group).map((document) => document.document_name);
+        toast.error(`Upload at least one alternative document: ${labels.join(', ')}.`);
+        return;
+      }
+    }
+
     setIsSaving(true);
+    let createdApplication;
     try {
-      await api.post('/applications', { ...applicationForm, service_id: Number(applicationForm.service_id) });
+      const { data: created } = await api.post('/applications', {
+        ...applicationForm,
+        service_id: Number(applicationForm.service_id),
+      });
+      createdApplication = created.data;
+      const applicationId = createdApplication.id;
+      for (const document of applicableApplicationRequirements.filter((item) => item.required_status === 'Conditional')) {
+        await api.post(`/applications/${applicationId}/document-requirements`, {
+          service_document_id: document.id,
+          applicable: applicableDocuments[document.id] === 'yes',
+        });
+      }
+      const uploadQueue = applicableRequirements.flatMap((document) =>
+        (applicationFiles[document.id] || []).map((file) => ({ document, file }))
+      );
+      for (const [index, item] of uploadQueue.entries()) {
+        const formData = new FormData();
+        formData.append('service_document_id', item.document.id);
+        formData.append('document_name', item.document.document_name);
+        formData.append('document', item.file);
+        setUploadProgress({ current: index + 1, total: uploadQueue.length, percent: 0 });
+        await api.post(`/applications/${applicationId}/documents`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progress) => {
+            if (progress.total) {
+              setUploadProgress({
+                current: index + 1,
+                total: uploadQueue.length,
+                percent: Math.round((progress.loaded * 100) / progress.total),
+              });
+            }
+          },
+        });
+      }
       toast.success('Application received. No notification delivery integration is configured.');
       setIsAddOpen(false);
       setApplicationForm(emptyApplication);
+      setApplicationFiles({});
+      setApplicableDocuments({});
+      setUploadProgress(null);
       setLoading(true);
       await Promise.all([loadList(), loadSummary()]);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Unable to create application.');
+      if (createdApplication) {
+        toast.error(`Application ${createdApplication.application_number || createdApplication.display_application_number} was created, but a document could not be saved: ${error.response?.data?.message || error.message}`);
+        setIsAddOpen(false);
+        setApplicationForm(emptyApplication);
+        setLoading(true);
+        await loadList();
+        await openDetails(createdApplication);
+      } else {
+        toast.error(error.response?.data?.message || 'Unable to create application.');
+      }
     } finally {
       setIsSaving(false);
+      setUploadProgress(null);
     }
+  };
+
+  const openNewApplication = () => {
+    setApplicationForm(emptyApplication);
+    setApplicationRequirements([]);
+    setApplicationFiles({});
+    setApplicableDocuments({});
+    setRequirementsLoading(false);
+    setIsAddOpen(true);
   };
 
   const exportReport = async () => {
@@ -547,11 +740,29 @@ export default function Applications({ certificateMode = false }) {
     return available[application.status] || [];
   };
 
-  const requiredMissing = (application) => (application.required_documents || [])
-    .filter((required) => required.required_status === 'Required')
-    .filter((required) => !(application.documents || []).some(
-      (document) => document.document_name.toLowerCase() === required.document_name.toLowerCase() && document.status === 'Verified',
-    ));
+  const requiredMissing = (application) => {
+    const configured = application.required_documents || [];
+    const verifiedCount = (required) => (application.documents || []).filter((document) => {
+      if (document.status !== 'Verified') return false;
+      return document.service_document_id
+        ? String(document.service_document_id) === String(required.id)
+        : document.document_name.toLowerCase() === required.document_name.toLowerCase();
+    }).length;
+    const missing = configured.filter((required) => {
+      if (required.alternative_group || required.required_status === 'Optional') return false;
+      if (required.required_status === 'Conditional' && required.applicable === null) return true;
+      if (required.required_status === 'Conditional' && Number(required.applicable) !== 1) return false;
+      return verifiedCount(required) < Number(required.min_files || 1);
+    }).map((required) => ({ document_name: required.document_name }));
+    const groups = new Set(configured.map((required) => required.alternative_group).filter(Boolean));
+    for (const group of groups) {
+      const alternatives = configured.filter((required) => required.alternative_group === group);
+      if (alternatives.reduce((total, required) => total + verifiedCount(required), 0) < 1) {
+        missing.push({ document_name: `one of: ${alternatives.map((required) => required.document_name).join(', ')}` });
+      }
+    }
+    return missing;
+  };
 
   const summaryCards = [
     { label: 'Total Applications', value: summary?.total_applications, icon: FileText, tone: 'bg-orange-500 text-white' },
@@ -575,7 +786,7 @@ export default function Applications({ certificateMode = false }) {
             <button type="button" onClick={exportReport} disabled={loading || !pagination.total} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800 disabled:opacity-50"><Download size={16} /> Export CSV</button>
             <button type="button" onClick={() => printReport('daily')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800"><Printer size={15} /> Daily report</button>
             <button type="button" onClick={() => printReport('monthly')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-700 bg-[#1a1c23] px-3.5 text-sm font-semibold text-gray-300 hover:bg-gray-800"><CalendarDays size={15} /> Monthly report</button>
-            <button type="button" onClick={() => setIsAddOpen(true)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-orange-500"><Plus size={16} /> New application</button>
+            <button type="button" onClick={openNewApplication} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-orange-500"><Plus size={16} /> New application</button>
           </div>
         </div>
 
@@ -693,16 +904,87 @@ export default function Applications({ certificateMode = false }) {
       {isAddOpen && (
         <Dialog title="New application" description="Create a real application record to start document review." onClose={() => !isSaving && setIsAddOpen(false)}>
           <form onSubmit={addApplication} className="space-y-4 p-5 sm:p-6">
-            <Field label="Applicant name" required><input required minLength={2} maxLength={150} value={applicationForm.applicant_name} onChange={(event) => setApplicationForm((current) => ({ ...current, applicant_name: event.target.value }))} className={inputClass} /></Field>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label="Applicant name" required><input required minLength={2} maxLength={150} value={applicationForm.applicant_name} onChange={(event) => setApplicationForm((current) => ({ ...current, applicant_name: event.target.value }))} className={inputClass} /></Field><Field label="Applicant type" required><select required value={applicationForm.applicant_type} onChange={(event) => { setApplicationForm((current) => ({ ...current, applicant_type: event.target.value })); setApplicationFiles({}); setApplicableDocuments({}); }} className={inputClass}><option>Individual</option><option>Student</option><option>Senior Citizen</option><option>Business</option></select></Field></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Mobile number"><input type="tel" maxLength={20} value={applicationForm.mobile} onChange={(event) => setApplicationForm((current) => ({ ...current, mobile: event.target.value }))} className={inputClass} /></Field>
               <Field label="Email"><input type="email" maxLength={255} value={applicationForm.email} onChange={(event) => setApplicationForm((current) => ({ ...current, email: event.target.value }))} className={inputClass} /></Field>
             </div>
-            <Field label="Certificate / service" required><select required value={applicationForm.service_id} onChange={(event) => setApplicationForm((current) => ({ ...current, service_id: event.target.value }))} className={inputClass}><option value="">Select an active service</option>{services.map((service) => <option key={service.id} value={service.id}>{service.service_name}</option>)}</select></Field>
+            <Field label="Certificate / service" required><select required value={applicationForm.service_id} onChange={(event) => { setApplicationForm((current) => ({ ...current, service_id: event.target.value })); setApplicationRequirements([]); setApplicationFiles({}); setApplicableDocuments({}); setRequirementsLoading(Boolean(event.target.value)); }} className={inputClass}><option value="">Select an active service</option>{services.map((service) => <option key={service.id} value={service.id}>{service.service_name}</option>)}</select></Field>
+            {applicationForm.service_id && (
+              <section className="space-y-3 rounded-xl border border-gray-800 bg-[#111318] p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-100">Required document checklist</h3>
+                  <p className="mt-1 text-xs text-gray-400">Upload files against the saved service checklist. Optional files may be omitted.</p>
+                </div>
+                {requirementsLoading ? (
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-400"><LoaderCircle size={16} className="animate-spin" />Loading active document requirements...</div>
+                ) : !applicationRequirements.length ? (
+                  <p className="rounded-lg border border-gray-800 bg-[#0f1115] p-3 text-sm text-gray-400">No active document requirements are configured for this service.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {applicableApplicationRequirements.map((document) => {
+                      const conditional = document.required_status === 'Conditional';
+                      const isApplicable = !conditional || applicableDocuments[document.id] === 'yes';
+                      const files = applicationFiles[document.id] || [];
+                      const acceptedFormats = document.accepted_formats || [];
+                      return (
+                        <div key={document.id} className="space-y-2 rounded-lg border border-gray-800 bg-[#0f1115] p-3">
+                          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                            <div>
+                              <p className="text-sm font-medium text-gray-100">{document.document_name}</p>
+                              <p className="mt-0.5 text-xs text-gray-400">
+                                {conditional ? 'Conditional' : document.required_status} · {acceptedFormats.join(', ')} · max {document.max_file_size}
+                                {document.number_of_documents === 'Multiple' ? ` · ${document.min_files}–${document.max_files} files` : ''}
+                              </p>
+                              {(document.document_description || document.conditional_requirement) && <p className="mt-1 text-xs text-gray-500">{document.conditional_requirement || document.document_description}</p>}
+                            </div>
+                            {document.alternative_group && <span className="w-fit rounded-full bg-blue-500/10 px-2 py-1 text-[10px] text-blue-300">Alternative · {document.alternative_group}</span>}
+                          </div>
+                          {conditional && (
+                            <Field label={`Does "${document.document_name}" apply?`} required>
+                              <select required value={applicableDocuments[document.id] || ''} onChange={(event) => setApplicableDocuments((current) => ({ ...current, [document.id]: event.target.value }))} className={inputClass}>
+                                <option value="">Choose Yes or No</option><option value="yes">Yes, it applies</option><option value="no">No, it does not apply</option>
+                              </select>
+                            </Field>
+                          )}
+                          {isApplicable && (
+                            <>
+                              <input
+                                key={`${document.id}-${files.length}`}
+                                type="file"
+                                multiple={document.number_of_documents === 'Multiple'}
+                                accept={acceptedFormats.map((format) => `.${format.toLowerCase()}`).join(',')}
+                                onChange={(event) => {
+                                  const selectedFiles = Array.from(event.target.files || []);
+                                  setApplicationFiles((current) => ({
+                                    ...current,
+                                    [document.id]: document.number_of_documents === 'Multiple'
+                                      ? [...(current[document.id] || []), ...selectedFiles].slice(0, Number(document.max_files))
+                                      : selectedFiles.slice(0, 1),
+                                  }));
+                                }}
+                                className={`${inputClass} file:mr-2 file:rounded file:border-0 file:bg-orange-500/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-orange-400`}
+                              />
+                              {!!files.length && <ul className="space-y-1">{files.map((file, index) => <li key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-2 text-xs text-gray-300"><span className="truncate">{file.name} · {(file.size / (1024 * 1024)).toFixed(2)} MB</span><button type="button" onClick={() => setApplicationFiles((current) => ({ ...current, [document.id]: current[document.id].filter((_, fileIndex) => fileIndex !== index) }))} className="shrink-0 rounded px-2 py-1 text-red-300 hover:bg-red-500/10">Remove</button></li>)}</ul>}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {uploadProgress && (
+                  <div className="space-y-1" role="status">
+                    <div className="flex justify-between text-xs text-gray-300"><span>Uploading file {uploadProgress.current} of {uploadProgress.total}</span><span>{uploadProgress.percent}%</span></div>
+                    <div className="h-2 overflow-hidden rounded-full bg-gray-800"><div className="h-full bg-orange-500 transition-all" style={{ width: `${uploadProgress.percent}%` }} /></div>
+                  </div>
+                )}
+              </section>
+            )}
             <Field label="Service centre"><input maxLength={150} value={applicationForm.center_name} onChange={(event) => setApplicationForm((current) => ({ ...current, center_name: event.target.value }))} className={inputClass} /></Field>
             <Field label="Applicant details / staff notes"><textarea maxLength={2000} rows={3} value={applicationForm.notes} onChange={(event) => setApplicationForm((current) => ({ ...current, notes: event.target.value }))} className={inputClass} /></Field>
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">No SMS or email gateway is configured. Notification delivery will be recorded as not configured; no message will be claimed as sent.</p>
-            <div className="flex justify-end gap-2 border-t border-gray-800 pt-4"><button type="button" onClick={() => setIsAddOpen(false)} disabled={isSaving} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Cancel</button><button type="submit" disabled={isSaving || !services.length} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{isSaving && <LoaderCircle size={15} className="animate-spin" />}{isSaving ? 'Saving…' : 'Create application'}</button></div>
+            <div className="flex justify-end gap-2 border-t border-gray-800 pt-4"><button type="button" onClick={() => setIsAddOpen(false)} disabled={isSaving} className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Cancel</button><button type="submit" disabled={isSaving || !services.length || requirementsLoading} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{isSaving && <LoaderCircle size={15} className="animate-spin" />}{isSaving ? (uploadProgress ? `Uploading ${uploadProgress.current}/${uploadProgress.total}…` : 'Saving…') : 'Create application'}</button></div>
           </form>
         </Dialog>
       )}
@@ -757,17 +1039,33 @@ export default function Applications({ certificateMode = false }) {
                 <div className="flex items-center justify-between gap-2"><h3 className="flex items-center gap-2 text-sm font-semibold text-gray-100"><FileCheck2 size={16} /> Required document checklist</h3><span className="text-xs text-gray-400">{details.documents?.length || 0} submitted</span></div>
                 {!details.required_documents?.length && <p className="rounded-lg bg-[#15171d] p-3 text-sm text-gray-400">No required documents are configured for this service.</p>}
                 {details.required_documents?.map((required) => {
-                  const submissions = details.documents?.filter((doc) => doc.document_name.toLowerCase() === required.document_name.toLowerCase()) || [];
+                  const submissions = details.documents?.filter((doc) => (
+                    doc.service_document_id
+                      ? String(doc.service_document_id) === String(required.id)
+                      : doc.document_name.toLowerCase() === required.document_name.toLowerCase()
+                  )) || [];
+                  const applicable = required.required_status !== 'Conditional' || Number(required.applicable) === 1;
+                  const verifiedCount = submissions.filter((document) => document.status === 'Verified').length;
+                  const groupVerifiedCount = required.alternative_group
+                    ? details.required_documents
+                      .filter((document) => document.alternative_group === required.alternative_group)
+                      .flatMap((document) => details.documents?.filter((item) => String(item.service_document_id) === String(document.id) && item.status === 'Verified') || [])
+                      .length
+                    : 0;
                   return <div key={required.id} className="rounded-lg border border-gray-800 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-medium text-gray-100">{required.document_name} {required.required_status === 'Required' && <span className="text-red-400">*</span>}</p>{required.document_description && <p className="mt-0.5 text-xs text-gray-400">{required.document_description}</p>}</div><span className="text-[11px] text-gray-500">{submissions.length ? `${submissions.length} file(s)` : 'Not submitted'}</span></div>
+                    <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-medium text-gray-100">{required.document_name} {(required.required_status === 'Required' || (required.required_status === 'Conditional' && applicable)) && <span className="text-red-400">Required</span>} {required.required_status === 'Optional' && <span className="text-gray-400">Optional</span>}</p>{required.document_description && <p className="mt-0.5 text-xs text-gray-400">{required.document_description}</p>}<p className="mt-1 text-[11px] text-gray-500">{(required.accepted_formats || []).join(', ')} · max {required.max_file_size} · {required.min_files}–{required.max_files} file(s)</p>{required.alternative_group && <p className="mt-1 text-[11px] text-blue-300">One or more documents from “{required.alternative_group}” are alternatives.</p>}</div><span className="text-[11px] text-gray-500">{submissions.length ? `${submissions.length} file(s)` : 'Not submitted'}</span></div>
+                    {required.required_status === 'Conditional' && <Field label={`Does "${required.document_name}" apply?`}><select value={required.applicable === null ? '' : Number(required.applicable) === 1 ? 'yes' : 'no'} onChange={(event) => saveApplicability(required, event.target.value === 'yes')} className={inputClass}><option value="">Choose Yes or No</option><option value="yes">Yes, it applies</option><option value="no">No, it does not apply</option></select><span className="mt-1 block text-xs text-gray-500">{required.conditional_requirement}</span></Field>}
                     {submissions.map((document) => <div key={document.id} className="mt-2 flex flex-col justify-between gap-2 rounded-lg bg-[#15171d] p-2.5 sm:flex-row sm:items-center">
                       <div className="min-w-0"><p className="truncate text-xs font-medium text-gray-200">{document.original_name}</p><p className="mt-0.5 text-[11px] text-gray-400">{document.status} · {formatDate(document.created_at)}{document.reviewer_remarks ? ` · ${document.reviewer_remarks}` : ''}</p></div>
-                      <div className="flex shrink-0 gap-1"><button type="button" onClick={() => previewDocument(document)} disabled={previewBusy === String(document.id)} className="inline-flex items-center gap-1 rounded-md border border-gray-700 bg-[#0f1115] px-2 py-1.5 text-xs font-semibold text-gray-300 disabled:opacity-50">{previewBusy === String(document.id) ? <LoaderCircle size={13} className="animate-spin" /> : <Eye size={13} />} Secure preview</button>{document.status !== 'Verified' && <button type="button" onClick={() => { setDocumentReview({ ...document, status: 'Verified' }); setReviewRemarks(''); }} disabled={details.status !== 'Documents Under Verification'} className="rounded-md bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">Verify</button>}<button type="button" onClick={() => { setDocumentReview({ ...document, status: 'Rejected' }); setReviewRemarks(''); }} disabled={details.status !== 'Documents Under Verification'} className="rounded-md bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-400 disabled:cursor-not-allowed disabled:opacity-40">Reject</button></div>
+                      <div className="flex shrink-0 gap-1"><button type="button" onClick={() => previewDocument(document)} disabled={previewBusy === String(document.id)} className="inline-flex items-center gap-1 rounded-md border border-gray-700 bg-[#0f1115] px-2 py-1.5 text-xs font-semibold text-gray-300 disabled:opacity-50">{previewBusy === String(document.id) ? <LoaderCircle size={13} className="animate-spin" /> : <Eye size={13} />} Secure preview</button>{document.status !== 'Verified' && <button type="button" onClick={() => { setDocumentReview({ ...document, status: 'Verified' }); setReviewRemarks(''); }} disabled={details.status !== 'Documents Under Verification'} className="rounded-md bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">Verify</button>}<button type="button" onClick={() => { setDocumentReview({ ...document, status: 'Rejected' }); setReviewRemarks(''); }} disabled={details.status !== 'Documents Under Verification'} className="rounded-md bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-400 disabled:cursor-not-allowed disabled:opacity-40">Reject</button>{document.status !== 'Verified' && <button type="button" onClick={() => removeApplicationDocument(document)} className="rounded-md bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-300">Remove</button>}</div>
                     </div>)}
-                    {required.required_status === 'Required' && submissions.length === 0 && <p className="mt-2 text-xs font-medium text-amber-400">Required file missing — cannot proceed to approval readiness.</p>}
+                    {required.required_status === 'Required' && verifiedCount < Number(required.min_files || 1) && <p className="mt-2 text-xs font-medium text-amber-400">Required verified file(s) missing — cannot proceed to approval readiness.</p>}
+                    {required.required_status === 'Conditional' && required.applicable === null && <p className="mt-2 text-xs font-medium text-amber-400">Choose whether this conditional requirement applies.</p>}
+                    {required.required_status === 'Conditional' && Number(required.applicable) === 1 && verifiedCount < Number(required.min_files || 1) && <p className="mt-2 text-xs font-medium text-amber-400">Required verified file(s) missing.</p>}
+                    {required.alternative_group && groupVerifiedCount === 0 && <p className="mt-2 text-xs font-medium text-amber-400">Upload and verify at least one approved document from this alternative group.</p>}
                   </div>;
                 })}
-                {!['Rejected', 'Cancelled', 'Completed', 'Approved'].includes(details.status) && details.required_documents?.length > 0 && <form onSubmit={submitDocument} className="grid grid-cols-1 items-end gap-3 border-t border-gray-800 pt-3 sm:grid-cols-3"><Field label="Attach submitted document" required><select required value={uploadDocumentId} onChange={(event) => setUploadDocumentId(event.target.value)} className={inputClass}><option value="">Select required document</option>{details.required_documents.map((item) => <option key={item.id} value={item.document_name}>{item.document_name}</option>)}</select></Field><Field label="PDF / JPEG / PNG / WebP (max 10 MB)" required><input required type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} className={`${inputClass} file:mr-2 file:rounded file:border-0 file:bg-orange-500/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-orange-400`} /></Field><button type="submit" disabled={uploadBusy || !uploadFile || !uploadDocumentId} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-600 px-3 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{uploadBusy && <LoaderCircle size={14} className="animate-spin" />}Upload securely</button></form>}
+                {!['Rejected', 'Cancelled', 'Completed', 'Approved'].includes(details.status) && details.required_documents?.length > 0 && <form onSubmit={submitDocument} className="grid grid-cols-1 items-end gap-3 border-t border-gray-800 pt-3 sm:grid-cols-3"><Field label="Attach submitted document" required><select required value={uploadDocumentId} onChange={(event) => { setUploadDocumentId(event.target.value); setUploadFiles([]); }} className={inputClass}><option value="">Select document</option>{details.required_documents.filter((item) => item.status === 'Active').map((item) => <option key={item.id} value={item.id}>{item.document_name}</option>)}</select></Field><Field label={selectedUploadRequirement ? `${selectedUploadRequirement.accepted_formats.join(', ')} · max ${selectedUploadRequirement.max_file_size}` : 'Select a document first'} required><input key={uploadDocumentId} required type="file" multiple={selectedUploadRequirement?.number_of_documents === 'Multiple'} accept={(selectedUploadRequirement?.accepted_formats || []).map((format) => `.${format.toLowerCase()}`).join(',')} onChange={(event) => setUploadFiles(Array.from(event.target.files || []).slice(0, Number(selectedUploadRequirement?.max_files || 1)))} disabled={!selectedUploadRequirement} className={`${inputClass} file:mr-2 file:rounded file:border-0 file:bg-orange-500/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-orange-400`} /></Field><button type="submit" disabled={uploadBusy || !uploadFiles.length || !uploadDocumentId} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-600 px-3 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50">{uploadBusy && <LoaderCircle size={14} className="animate-spin" />}Upload securely</button>{uploadFiles.length > 0 && <div className="text-xs text-gray-400 sm:col-span-3">{uploadFiles.map((file) => file.name).join(' · ')}</div>}{uploadProgress && <div className="space-y-1 sm:col-span-3"><div className="flex justify-between text-xs text-gray-300"><span>Uploading {uploadProgress.current} of {uploadProgress.total}</span><span>{uploadProgress.percent}%</span></div><div className="h-2 overflow-hidden rounded-full bg-gray-800"><div className="h-full bg-orange-500" style={{ width: `${uploadProgress.percent}%` }} /></div></div>}</form>}
               </section>
 
               <section className="rounded-xl border border-gray-800 p-4">

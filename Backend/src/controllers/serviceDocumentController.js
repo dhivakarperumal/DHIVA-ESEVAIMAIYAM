@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { getDB } = require('../config/db');
 
 const formatList = (value) => {
@@ -7,6 +8,7 @@ const formatList = (value) => {
 
 const fields = (body) => ({
   serviceId: Number(body.service_id),
+  documentKey: String(body.document_key || '').trim(),
   documentName: String(body.document_name || '').trim(),
   documentType: String(body.document_type || '').trim(),
   requiredStatus: String(body.required_status || '').trim(),
@@ -15,14 +17,35 @@ const fields = (body) => ({
   acceptedFormats: formatList(body.accepted_formats),
   maxFileSize: String(body.max_file_size || '').trim(),
   numberOfDocuments: String(body.number_of_documents || 'Single').trim(),
+  minFiles: Number(body.min_files),
+  maxFiles: Number(body.max_files),
   issuingAuthority: String(body.issuing_authority || 'Other').trim(),
+  conditionalRequirement: String(body.conditional_requirement || '').trim(),
+  alternativeGroup: String(body.alternative_group || '').trim(),
   displayOrder: Number(body.display_order) || 1,
   status: String(body.status || 'Active').trim(),
 });
 
 const validate = (value) => {
-  if (!value.serviceId || !value.documentName || !value.documentType || !value.requiredStatus || !value.acceptedFormats.length || !['2 MB', '5 MB', '10 MB'].includes(value.maxFileSize)) {
-    return 'Service, document name, type, required status, file format and maximum file size are required';
+  const allowedFormats = new Set(['PDF', 'JPG', 'JPEG', 'PNG']);
+  if (!Number.isInteger(value.serviceId) || value.serviceId < 1 ||
+      value.documentName.length < 2 || value.documentName.length > 255 ||
+      !value.documentType || !['Required', 'Optional', 'Conditional'].includes(value.requiredStatus) ||
+      !['Single', 'Multiple'].includes(value.numberOfDocuments) ||
+      !['2 MB', '5 MB', '10 MB'].includes(value.maxFileSize) ||
+      !['Active', 'Inactive'].includes(value.status) ||
+      !Number.isInteger(value.displayOrder) || value.displayOrder < 1 ||
+      !Number.isInteger(value.minFiles) || !Number.isInteger(value.maxFiles) ||
+      value.minFiles < 0 || value.maxFiles < 1 || value.minFiles > value.maxFiles ||
+      value.maxFiles > 20 || value.acceptedFormats.length === 0 ||
+      value.acceptedFormats.some((format) => !allowedFormats.has(String(format).toUpperCase()))) {
+    return 'Enter a valid service document, format, file count and status.';
+  }
+  if (value.numberOfDocuments === 'Single' && value.maxFiles !== 1) {
+    return 'Single documents must have a maximum file count of 1.';
+  }
+  if (value.requiredStatus === 'Conditional' && !value.conditionalRequirement) {
+    return 'Describe when this conditional document is required.';
   }
   return null;
 };
@@ -34,11 +57,18 @@ const select = `SELECT documents.*, services.service_name, services.service_code
 exports.getDocuments = async (req, res) => {
   try {
     const db = getDB();
+    const conditions = [];
     const params = [];
-    let query = `${select} WHERE documents.service_id = ? ORDER BY documents.display_order ASC, documents.id ASC`;
-    if (!req.query.service_id) return res.json({ success: true, data: [] });
-    params.push(req.query.service_id);
-    const [rows] = await db.execute(query, params);
+    if (req.query.service_id) {
+      conditions.push('documents.service_id = ?');
+      params.push(req.query.service_id);
+    }
+    if (req.query.active === 'true') conditions.push("documents.status = 'Active'");
+    const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+    const [rows] = await db.execute(
+      `${select}${where} ORDER BY documents.service_id, documents.display_order ASC, documents.id ASC`,
+      params
+    );
     res.json({ success: true, data: rows.map((row) => ({ ...row, accepted_formats: formatList(row.accepted_formats) })) });
   } catch (error) { console.error('Error in getDocuments:', error); res.status(500).json({ success: false, message: 'Server Error' }); }
 };
@@ -62,10 +92,18 @@ exports.createDocument = async (req, res) => {
     if (duplicate.length) return res.status(409).json({ success: false, message: 'This document already exists for the selected service' });
     const [last] = await db.execute('SELECT COALESCE(MAX(display_order), 0) AS last_order FROM service_required_documents WHERE service_id = ?', [value.serviceId]);
     const order = value.displayOrder > 1 ? value.displayOrder : last[0].last_order + 1;
+    const documentKey = value.documentKey || crypto.randomUUID();
     const [result] = await db.execute(`INSERT INTO service_required_documents
-      (service_id, document_name, document_type, required_status, applicant_type, document_description, accepted_formats, max_file_size, number_of_documents, issuing_authority, display_order, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [value.serviceId, value.documentName, value.documentType, value.requiredStatus, value.applicantType, value.documentDescription || null, JSON.stringify(value.acceptedFormats), value.maxFileSize, value.numberOfDocuments, value.issuingAuthority, order, value.status]);
-    res.status(201).json({ success: true, message: 'Document added successfully.', data: { id: result.insertId } });
+      (document_key, service_id, document_name, document_type, required_status, applicant_type, document_description,
+       accepted_formats, max_file_size, number_of_documents, min_files, max_files, issuing_authority,
+       conditional_requirement, alternative_group, display_order, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      documentKey, value.serviceId, value.documentName, value.documentType, value.requiredStatus,
+      value.applicantType, value.documentDescription || null, JSON.stringify(value.acceptedFormats.map((format) => String(format).toUpperCase())),
+      value.maxFileSize, value.numberOfDocuments, value.minFiles, value.maxFiles, value.issuingAuthority,
+      value.conditionalRequirement || null, value.alternativeGroup || null, order, value.status,
+    ]);
+    res.status(201).json({ success: true, message: 'Document added successfully.', data: { id: result.insertId, document_key: documentKey } });
   } catch (error) { console.error('Error in createDocument:', error); if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'This document already exists for the selected service' }); res.status(500).json({ success: false, message: 'Server Error' }); }
 };
 
@@ -78,7 +116,15 @@ exports.updateDocument = async (req, res) => {
     if (!existing.length) return res.status(404).json({ success: false, message: 'Document not found' });
     const [duplicate] = await db.execute('SELECT id FROM service_required_documents WHERE service_id = ? AND LOWER(document_name) = LOWER(?) AND id <> ?', [value.serviceId, value.documentName, req.params.id]);
     if (duplicate.length) return res.status(409).json({ success: false, message: 'This document already exists for the selected service' });
-    await db.execute(`UPDATE service_required_documents SET service_id = ?, document_name = ?, document_type = ?, required_status = ?, applicant_type = ?, document_description = ?, accepted_formats = ?, max_file_size = ?, number_of_documents = ?, issuing_authority = ?, display_order = ?, status = ? WHERE id = ?`, [value.serviceId, value.documentName, value.documentType, value.requiredStatus, value.applicantType, value.documentDescription || null, JSON.stringify(value.acceptedFormats), value.maxFileSize, value.numberOfDocuments, value.issuingAuthority, value.displayOrder, value.status, req.params.id]);
+    await db.execute(`UPDATE service_required_documents SET service_id = ?, document_name = ?, document_type = ?,
+      required_status = ?, applicant_type = ?, document_description = ?, accepted_formats = ?, max_file_size = ?,
+      number_of_documents = ?, min_files = ?, max_files = ?, issuing_authority = ?, conditional_requirement = ?,
+      alternative_group = ?, display_order = ?, status = ? WHERE id = ?`, [
+      value.serviceId, value.documentName, value.documentType, value.requiredStatus, value.applicantType,
+      value.documentDescription || null, JSON.stringify(value.acceptedFormats.map((format) => String(format).toUpperCase())),
+      value.maxFileSize, value.numberOfDocuments, value.minFiles, value.maxFiles, value.issuingAuthority,
+      value.conditionalRequirement || null, value.alternativeGroup || null, value.displayOrder, value.status, req.params.id,
+    ]);
     res.json({ success: true, message: 'Document updated successfully.' });
   } catch (error) { console.error('Error in updateDocument:', error); if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'This document already exists for the selected service' }); res.status(500).json({ success: false, message: 'Server Error' }); }
 };

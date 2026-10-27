@@ -68,7 +68,8 @@ const applicationSelect = `
     END AS payment_status,
     (SELECT COUNT(*) FROM service_required_documents required
      WHERE required.service_id = a.service_id AND required.status = 'Active'
-       AND required.required_status = 'Required') AS required_document_count,
+       AND required.required_status = 'Required'
+       AND (required.applicant_type = 'All' OR required.applicant_type = a.applicant_type)) AS required_document_count,
     (SELECT COUNT(DISTINCT verified.document_name)
      FROM application_documents verified
      INNER JOIN service_required_documents required
@@ -76,6 +77,7 @@ const applicationSelect = `
        AND required.document_name = verified.document_name
        AND required.status = 'Active'
        AND required.required_status = 'Required'
+       AND (required.applicant_type = 'All' OR required.applicant_type = a.applicant_type)
      WHERE verified.application_id = a.id AND verified.status = 'Verified') AS verified_required_document_count,
     staff.username AS assigned_staff_name
   FROM applications a
@@ -96,15 +98,35 @@ const safeJson = (value) => {
   }
 };
 
-async function getRequiredDocuments(db, serviceId) {
+async function getRequiredDocuments(db, serviceId, applicationId = 0, applicantType = 'Individual') {
   const [documents] = await db.execute(
-    `SELECT id, document_name, required_status, document_description, status
-     FROM service_required_documents
-     WHERE service_id = ? AND status = 'Active'
-     ORDER BY display_order, id`,
-    [serviceId]
+    `SELECT documents.id, documents.document_key, documents.document_name, documents.document_type,
+            documents.required_status, documents.applicant_type, documents.document_description,
+            documents.accepted_formats, documents.max_file_size, documents.number_of_documents,
+            documents.min_files, documents.max_files, documents.issuing_authority,
+            documents.conditional_requirement, documents.alternative_group, documents.display_order,
+            documents.status, requirements.applicable
+     FROM service_required_documents documents
+     LEFT JOIN application_document_requirements requirements
+       ON requirements.service_document_id = documents.id AND requirements.application_id = ?
+     WHERE documents.service_id = ? AND documents.status = 'Active'
+       AND (documents.applicant_type = 'All' OR documents.applicant_type = ?)
+     ORDER BY documents.display_order, documents.id`,
+    [applicationId, serviceId, applicantType]
   );
-  return documents;
+  return documents.map((document) => {
+    try {
+      return {
+        ...document,
+        accepted_formats: Array.isArray(document.accepted_formats)
+          ? document.accepted_formats
+          : JSON.parse(document.accepted_formats || '[]'),
+      };
+    } catch (error) {
+      console.error(`Unable to parse accepted formats for service document ${document.id}:`, error);
+      return { ...document, accepted_formats: [] };
+    }
+  });
 }
 
 async function writeAudit(connection, applicationId, eventType, previousStatus, newStatus, details, userId) {
@@ -125,18 +147,55 @@ async function recordNotification(connection, application, eventType, details) {
 
 async function checkApprovalRequirements(connection, application) {
   const [required] = await connection.execute(
-    `SELECT document_name FROM service_required_documents
-     WHERE service_id = ? AND status = 'Active' AND required_status = 'Required'`,
-    [application.service_id]
+    `SELECT documents.id, documents.document_name, documents.min_files, documents.required_status,
+            documents.alternative_group, requirements.applicable
+     FROM service_required_documents documents
+     LEFT JOIN application_document_requirements requirements
+       ON requirements.service_document_id = documents.id AND requirements.application_id = ?
+     WHERE documents.service_id = ? AND documents.status = 'Active'
+       AND (documents.applicant_type = 'All' OR documents.applicant_type = ?)`,
+    [application.id, application.service_id, application.applicant_type || 'Individual']
   );
   const [verified] = await connection.execute(
-    `SELECT document_name FROM application_documents
-     WHERE application_id = ? AND status = 'Verified'`,
+    `SELECT service_document_id, document_name, COUNT(*) AS verified_count
+     FROM application_documents
+     WHERE application_id = ? AND status = 'Verified'
+     GROUP BY service_document_id, document_name`,
     [application.id]
   );
-  const verifiedNames = new Set(verified.map((document) => document.document_name.toLowerCase()));
-  const missing = required.filter((document) => !verifiedNames.has(document.document_name.toLowerCase()));
-  if (missing.length) return `Verify required documents first: ${missing.map((document) => document.document_name).join(', ')}.`;
+  const verifiedByDocument = new Map();
+  for (const document of verified) {
+    const key = String(document.service_document_id || document.document_name.toLowerCase());
+    verifiedByDocument.set(key, (verifiedByDocument.get(key) || 0) + Number(document.verified_count));
+  }
+  const verifiedCount = (document) =>
+    verifiedByDocument.get(String(document.id)) ||
+    verifiedByDocument.get(document.document_name.toLowerCase()) ||
+    0;
+  const missing = [];
+  const alternativeGroups = new Map();
+  for (const document of required) {
+    if (document.alternative_group) {
+      alternativeGroups.set(document.alternative_group, (alternativeGroups.get(document.alternative_group) || 0) +
+        verifiedCount(document));
+      continue;
+    }
+    if (document.required_status === 'Conditional' && document.applicable === null) {
+      return `Confirm whether ${document.document_name} applies to this applicant.`;
+    }
+    const isRequired = document.required_status === 'Required' ||
+      (document.required_status === 'Conditional' && Number(document.applicable) === 1);
+    if (isRequired && verifiedCount(document) < Number(document.min_files || 1)) {
+      missing.push(document.document_name);
+    }
+  }
+  const missingGroups = [...alternativeGroups.entries()].filter(([, verifiedCount]) => verifiedCount < 1).map(([group]) => group);
+  if (missing.length || missingGroups.length) {
+    const groupNames = required.filter((document) => missingGroups.includes(document.alternative_group))
+      .map((document) => document.document_name);
+    const missingLabels = [...missing, ...(groupNames.length ? [`one of: ${groupNames.join(', ')}`] : [])];
+    return `Verify required documents first: ${missingLabels.join('; ')}.`;
+  }
 
   const [[service]] = await connection.execute('SELECT total_amount FROM services WHERE id = ?', [application.service_id]);
   const [[payments]] = await connection.execute(
@@ -283,9 +342,9 @@ exports.getApplication = async (req, res) => {
     const [rows] = await db.execute(`${applicationSelect} WHERE a.id = ?`, [req.params.id]);
     if (!rows.length) return res.status(404).json({ success: false, message: 'Application not found.' });
     const application = rows[0];
-    const requiredDocuments = await getRequiredDocuments(db, application.service_id);
+    const requiredDocuments = await getRequiredDocuments(db, application.service_id, application.id, application.applicant_type);
     const [documents] = await db.execute(
-      `SELECT id, document_name, original_name, mime_type, file_size, status, reviewer_remarks,
+      `SELECT id, service_document_id, document_name, original_name, mime_type, file_size, status, reviewer_remarks,
               uploaded_by, reviewed_by, reviewed_at, created_at
        FROM application_documents WHERE application_id = ? ORDER BY created_at, id`,
       [application.id]
@@ -326,6 +385,7 @@ exports.getApplication = async (req, res) => {
 exports.createApplication = async (req, res) => {
   try {
     const applicantName = String(req.body.applicant_name || '').trim();
+    const applicantType = String(req.body.applicant_type || 'Individual').trim();
     const mobile = String(req.body.mobile || '').trim();
     const email = String(req.body.email || '').trim();
     const serviceId = Number(req.body.service_id);
@@ -334,6 +394,9 @@ exports.createApplication = async (req, res) => {
 
     if (applicantName.length < 2 || applicantName.length > 150) {
       return res.status(400).json({ success: false, message: 'Applicant name must be between 2 and 150 characters.' });
+    }
+    if (!['Individual', 'Student', 'Senior Citizen', 'Business'].includes(applicantType)) {
+      return res.status(400).json({ success: false, message: 'Select a valid applicant type.' });
     }
     if (mobile && !/^[0-9+ -]{7,20}$/.test(mobile)) {
       return res.status(400).json({ success: false, message: 'Enter a valid mobile number.' });
@@ -353,9 +416,9 @@ exports.createApplication = async (req, res) => {
     try {
       await connection.beginTransaction();
       const [result] = await connection.execute(
-        `INSERT INTO applications (applicant_name, mobile, email, service_id, center_name, status, notes)
-         VALUES (?, ?, ?, ?, ?, 'Submitted', ?)` ,
-        [applicantName, mobile || null, email || null, serviceId, centerName || null, notes || null]
+        `INSERT INTO applications (applicant_name, applicant_type, mobile, email, service_id, center_name, status, notes)
+         VALUES (?, ?, ?, ?, ?, ?, 'Submitted', ?)` ,
+        [applicantName, applicantType, mobile || null, email || null, serviceId, centerName || null, notes || null]
       );
       const applicationNumber = `APP-${String(result.insertId).padStart(8, '0')}`;
       await connection.execute('UPDATE applications SET application_number = ? WHERE id = ?', [applicationNumber, result.insertId]);
@@ -744,7 +807,7 @@ exports.uploadDocument = async (req, res) => {
   try {
     await connection.beginTransaction();
     const [apps] = await connection.execute(
-      'SELECT id, service_id, status FROM applications WHERE id = ? FOR UPDATE',
+      'SELECT id, service_id, status, applicant_type FROM applications WHERE id = ? FOR UPDATE',
       [req.params.id]
     );
     if (!apps.length) {
@@ -757,22 +820,49 @@ exports.uploadDocument = async (req, res) => {
       await fs.promises.unlink(req.file.path);
       return res.status(409).json({ success: false, message: 'Documents cannot be added to a closed or approved application.' });
     }
+    const requestedDocumentId = Number(req.body.service_document_id);
     const [required] = await connection.execute(
-      `SELECT id FROM service_required_documents
-       WHERE service_id = ? AND document_name = ? AND status = 'Active'`,
-      [apps[0].service_id, documentName]
+      `SELECT id, document_name, accepted_formats, max_file_size, max_files
+       FROM service_required_documents
+       WHERE id = ? AND service_id = ? AND status = 'Active'
+         AND (applicant_type = 'All' OR applicant_type = ?)`,
+      [requestedDocumentId, apps[0].service_id, apps[0].applicant_type || 'Individual']
     );
-    if (!required.length) {
+    if (!required.length || required[0].document_name !== documentName) {
       await connection.rollback();
       await fs.promises.unlink(req.file.path);
       return res.status(400).json({ success: false, message: 'Select a document configured as required for this service.' });
     }
+    const acceptedFormats = (() => {
+      try { return JSON.parse(required[0].accepted_formats || '[]').map((item) => String(item).toLowerCase()); }
+      catch (error) {
+        console.error('Unable to parse accepted formats for a service document:', error);
+        return [];
+      }
+    })();
+    const maxBytes = Number.parseFloat(required[0].max_file_size) * 1024 * 1024;
+    if (!acceptedFormats.includes(extension.slice(1)) || req.file.size > maxBytes) {
+      await connection.rollback();
+      await fs.promises.unlink(req.file.path);
+      return res.status(400).json({ success: false, message: 'The file does not match the configured format or size limit.' });
+    }
+    const [[fileCount]] = await connection.execute(
+      `SELECT COUNT(*) AS file_count FROM application_documents
+       WHERE application_id = ? AND (service_document_id = ? OR
+         (service_document_id IS NULL AND LOWER(document_name) = LOWER(?)))`,
+      [apps[0].id, required[0].id, required[0].document_name]
+    );
+    if (Number(fileCount.file_count) >= Number(required[0].max_files)) {
+      await connection.rollback();
+      await fs.promises.unlink(req.file.path);
+      return res.status(400).json({ success: false, message: 'The configured maximum file count has been reached.' });
+    }
     const originalName = path.basename(req.file.originalname).slice(0, 255);
     const [result] = await connection.execute(
       `INSERT INTO application_documents
-       (application_id, document_name, stored_name, original_name, mime_type, file_size, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [apps[0].id, documentName, path.basename(req.file.filename), originalName, req.file.mimetype, req.file.size, actorId(req)]
+       (application_id, service_document_id, document_name, stored_name, original_name, mime_type, file_size, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [apps[0].id, required[0].id, documentName, path.basename(req.file.filename), originalName, req.file.mimetype, req.file.size, actorId(req)]
     );
     await writeAudit(connection, apps[0].id, 'Document Uploaded', apps[0].status, apps[0].status, { document_id: result.insertId, document_name: documentName }, actorId(req));
     await connection.commit();
@@ -786,6 +876,69 @@ exports.uploadDocument = async (req, res) => {
     res.status(500).json({ success: false, message: 'Unable to save the uploaded document.' });
   } finally {
     connection.release();
+  }
+};
+
+exports.setDocumentApplicability = async (req, res) => {
+  const applicationId = Number(req.params.id);
+  const documentId = Number(req.body.service_document_id);
+  if (!positiveId(applicationId) || !positiveId(documentId) || typeof req.body.applicable !== 'boolean') {
+    return res.status(400).json({ success: false, message: 'Select a valid conditional document and applicability value.' });
+  }
+  try {
+    const db = getDB();
+    const [[application]] = await db.execute('SELECT service_id, applicant_type FROM applications WHERE id = ?', [applicationId]);
+    if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
+    const [documents] = await db.execute(
+      `SELECT id FROM service_required_documents
+       WHERE id = ? AND service_id = ? AND required_status = 'Conditional' AND status = 'Active'
+         AND (applicant_type = 'All' OR applicant_type = ?)`,
+      [documentId, application.service_id, application.applicant_type || 'Individual']
+    );
+    if (!documents.length) return res.status(400).json({ success: false, message: 'This is not an active conditional document for the application service.' });
+    await db.execute(
+      `INSERT INTO application_document_requirements (application_id, service_document_id, applicable)
+       VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE applicable = VALUES(applicable)`,
+      [applicationId, documentId, req.body.applicable ? 1 : 0]
+    );
+    res.json({ success: true, message: 'Conditional document requirement saved.' });
+  } catch (error) {
+    console.error('Error saving document applicability:', error);
+    res.status(500).json({ success: false, message: 'Unable to save document applicability.' });
+  }
+};
+
+exports.deleteApplicationDocument = async (req, res) => {
+  const applicationId = Number(req.params.id);
+  const documentId = Number(req.params.documentId);
+  if (!positiveId(applicationId) || !positiveId(documentId)) {
+    return res.status(400).json({ success: false, message: 'Invalid application document reference.' });
+  }
+  try {
+    const db = getDB();
+    const [rows] = await db.execute(
+      `SELECT document.stored_name, document.status, application.status AS application_status
+       FROM application_documents document
+       INNER JOIN applications application ON application.id = document.application_id
+       WHERE document.id = ? AND document.application_id = ?`,
+      [documentId, applicationId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Application document not found.' });
+    if (rows[0].status === 'Verified' || ['Approved', 'Certificate Generated', 'Completed', 'Cancelled', 'Rejected'].includes(rows[0].application_status)) {
+      return res.status(409).json({ success: false, message: 'Verified or closed application documents cannot be removed.' });
+    }
+    const filePath = path.resolve(documentDirectory, path.basename(rows[0].stored_name));
+    if (!filePath.startsWith(`${documentDirectory}${path.sep}`)) {
+      return res.status(400).json({ success: false, message: 'Invalid document path.' });
+    }
+    await db.execute('DELETE FROM application_documents WHERE id = ? AND application_id = ?', [documentId, applicationId]);
+    await fs.promises.unlink(filePath).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+    res.json({ success: true, message: 'Application document removed.' });
+  } catch (error) {
+    console.error('Error removing application document:', error);
+    res.status(500).json({ success: false, message: 'Unable to remove the application document.' });
   }
 };
 

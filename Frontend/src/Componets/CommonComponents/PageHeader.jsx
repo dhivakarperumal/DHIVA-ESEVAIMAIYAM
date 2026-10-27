@@ -5,7 +5,7 @@ const PageHeader = ({ title, description, background, actions = [] }) => {
     <header
       className="relative flex min-h-[220px] w-full items-center border-b border-primary/30 bg-cover bg-center px-[6%] py-10 text-white sm:min-h-[260px] sm:px-[5%] lg:min-h-[290px] lg:px-[3%]"
       style={{
-        backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.92), rgba(0,0,0,.68) 55%, rgba(0,0,0,.3)), url("${background || "/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png"}")`,
+        backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.92), rgba(0,0,0,.68) 55%, rgba(0,0,0,.3)), url("${background || "/Hero/pageheders.png"}")`,
       }}
     >
       <div className="relative mx-auto w-full max-w-[1700px] text-left">
