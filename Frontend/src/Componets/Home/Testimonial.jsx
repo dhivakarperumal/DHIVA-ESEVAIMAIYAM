@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { MessageSquareQuote, Star, UserRound } from "lucide-react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import PageContainer from "../CommonComponents/PageContainer";
 import "swiper/css";
-import "swiper/css/pagination";
 
 const Testimonial = () => {
   const [reviews, setReviews] = useState([]);
@@ -70,21 +69,20 @@ const Testimonial = () => {
           </p>
         ) : (
           <Swiper
-            modules={[Autoplay, Pagination]}
+            modules={[Autoplay]}
             loop={reviews.length > 1}
             autoplay={{
               delay: 4500,
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
             }}
-            pagination={{ clickable: true }}
             spaceBetween={16}
             breakpoints={{
               0: { slidesPerView: 1 },
               640: { slidesPerView: 2 },
               1024: { slidesPerView: 3 },
             }}
-            className="mt-8 pb-12 [&_.swiper-pagination-bullet]:!bg-white/60 [&_.swiper-pagination-bullet-active]:!bg-primary"
+            className="mt-8 pb-2"
           >
             {reviews.map((review) => (
               <SwiperSlide key={review.id}>
