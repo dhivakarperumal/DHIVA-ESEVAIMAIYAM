@@ -58,16 +58,16 @@ const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-primary/30 bg-[#04070b] shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-      <PageContainer className="py-3">
-        <div className="flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-primary bg-[#0d1218] shadow-[0_0_18px_rgba(248,116,14,0.35)]">
-              <img src={logo} alt="DHIVA E-SEVAI MAIYAM logo" className="h-9 w-9 object-contain" />
+      <PageContainer className="py-3 !px-3 sm:!px-4 lg:!px-[3%]">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-[#0d1218] shadow-[0_0_18px_rgba(248,116,14,0.35)] sm:h-14 sm:w-14">
+              <img src={logo} alt="DHIVA E-SEVAI MAIYAM logo" className="h-7 w-7 object-contain sm:h-9 sm:w-9" />
             </div>
 
-            <div className="leading-none">
-              <div className="text-2xl font-black tracking-tight text-primary">DHIVA</div>
-              <div className="mt-1 text-[10px] font-semibold tracking-[0.22em] text-white/80 uppercase">
+            <div className="min-w-0 leading-none">
+              <div className="text-xl font-black tracking-tight text-primary sm:text-2xl">DHIVA</div>
+              <div className="mt-1 text-[8px] font-semibold tracking-[0.16em] text-white/80 uppercase sm:text-[10px] sm:tracking-[0.22em]">
                 E-SEVAI MAIYAM
               </div>
             </div>
@@ -87,7 +87,7 @@ const Navbar = () => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             <button
               type="button"
               aria-label={searchOpen ? "Close search" : "Search services"}
@@ -100,7 +100,7 @@ const Navbar = () => {
 
             <Link
               to="/contact"
-              className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(248,116,14,0.35)] transition hover:scale-[1.02] hover:bg-orange-500"
+              className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-primary px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(248,116,14,0.35)] transition hover:scale-[1.02] hover:bg-orange-500 sm:px-5 sm:py-2.5 sm:text-sm"
             >
               Let's Talk
             </Link>
@@ -112,9 +112,9 @@ const Navbar = () => {
                   aria-label={`Open ${userName} account menu`}
                   aria-expanded={profileOpen}
                   onClick={() => setProfileOpen((open) => !open)}
-                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1 pl-1 pr-1 text-white transition hover:border-primary/60 hover:bg-white/10"
+                  className="flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/5 p-1 text-white transition hover:border-primary/60 hover:bg-white/10"
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-white sm:h-9 sm:w-9">
                     {userInitial}
                   </span>
                 </button>
@@ -166,7 +166,7 @@ const Navbar = () => {
                 aria-label="Log in"
                 title="Log in"
                 onClick={() => navigate("/login")}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:border-primary/60 hover:bg-white/10 hover:text-white"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:border-primary/60 hover:bg-white/10 hover:text-white sm:h-12 sm:w-12"
               >
                 <UserRound size={16} />
               </button>
@@ -175,7 +175,7 @@ const Navbar = () => {
             <button
               type="button"
               aria-label="Toggle menu"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white lg:hidden"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white lg:hidden sm:h-10 sm:w-10"
               onClick={() => setMobileOpen((prev) => !prev)}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
