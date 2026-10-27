@@ -38,7 +38,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-primary text-white">
+    <header className="hidden bg-primary text-white sm:block">
       <PageContainer className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,42vw)_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-3 text-[11px] font-medium text-slate-200 sm:text-xs">
           <a href={CONTACT_PHONE_HREF} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap transition hover:text-white">

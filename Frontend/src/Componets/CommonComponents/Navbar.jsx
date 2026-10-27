@@ -65,7 +65,7 @@ const Navbar = () => {
               <img src={logo} alt="DHIVA E-SEVAI MAIYAM logo" className="h-7 w-7 object-contain sm:h-9 sm:w-9" />
             </div>
 
-            <div className="min-w-0 leading-none">
+            <div className="hidden min-w-0 leading-none sm:block">
               <div className="text-xl font-black tracking-tight text-primary sm:text-2xl">DHIVA</div>
               <div className="mt-1 text-[8px] font-semibold tracking-[0.16em] text-white/80 uppercase sm:text-[10px] sm:tracking-[0.22em]">
                 E-SEVAI MAIYAM

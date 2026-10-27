@@ -1,6 +1,5 @@
-// src/components/ScrollNavigator.jsx
-import React, { useEffect, useState } from "react";
-import { FiChevronUp } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { ArrowUp } from "lucide-react";
 
 const ScrollNavigator = () => {
   const [showButtons, setShowButtons] = useState(false);
@@ -17,19 +16,16 @@ const ScrollNavigator = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const scrollToBottom = () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  };
-
   return (
     showButtons && (
       <div className="fixed right-4 bottom-5 z-30 flex flex-col gap-3">
         <button
+          type="button"
           onClick={scrollToTop}
-          className="bg-primary-light text-white p-2 cursor-pointer rounded-full shadow-md  transition"
+          className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#080b10] max-[768px]:h-[46px] max-[768px]:w-[46px]"
           aria-label="Scroll to top"
         >
-          <FiChevronUp size={24} />
+          <ArrowUp size={24} strokeWidth={2.5} />
         </button>
       </div>
     )

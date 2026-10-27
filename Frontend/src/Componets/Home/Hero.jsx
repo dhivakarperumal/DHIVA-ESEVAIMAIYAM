@@ -102,7 +102,7 @@ const Hero = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/10" />
             <div className="relative z-[1]">
-              <PageContainer className="flex min-h-[400px] items-center py-10 sm:min-h-[440px] lg:min-h-[min(32vw,500px)]">
+              <PageContainer className="flex min-h-[480px] items-center py-10 sm:min-h-[540px] lg:min-h-[min(40vw,620px)]">
                 <div className="max-w-xl">
                   <p className="inline-flex rounded-full border border-primary/60 bg-black/50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-orange-200 sm:text-xs">
                     {eyebrow}
