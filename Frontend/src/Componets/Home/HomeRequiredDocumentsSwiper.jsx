@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, FileCheck2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import PageContainer from "../CommonComponents/PageContainer";
 import api from "../../api";
 import "swiper/css";
-import "swiper/css/pagination";
 
 const HomeRequiredDocumentsSwiper = () => {
   const [documents, setDocuments] = useState([]);
@@ -114,14 +113,13 @@ const HomeRequiredDocumentsSwiper = () => {
           </p>
         ) : (
           <Swiper
-            modules={[Autoplay, Pagination]}
+            modules={[Autoplay]}
             loop={documents.length > 1}
             autoplay={{
               delay: 4000,
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
             }}
-            pagination={{ clickable: true }}
             spaceBetween={14}
             breakpoints={{
               0: { slidesPerView: 1.15 },
@@ -130,7 +128,7 @@ const HomeRequiredDocumentsSwiper = () => {
               900: { slidesPerView: 3 },
               1200: { slidesPerView: 4 },
             }}
-            className="!pb-12 [&_.swiper-pagination-bullet]:!bg-white/60 [&_.swiper-pagination-bullet-active]:!bg-primary"
+            className="!pb-2"
           >
             {documents.map((document) => (
               <SwiperSlide key={document.id} className="h-auto">
