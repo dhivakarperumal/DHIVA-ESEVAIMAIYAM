@@ -122,4 +122,24 @@ async function login(req, res) {
   }
 }
 
-module.exports = { create, getAll, getOne, update, remove, login };
+async function changePassword(req, res) {
+  try {
+    const user = await findByUserId(req.user.user_id, true);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!(await bcrypt.compare(req.body.currentPassword, user.password))) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+    if (await bcrypt.compare(req.body.newPassword, user.password)) {
+      return res.status(400).json({ message: "New password must be different from your current password" });
+    }
+
+    const password = await bcrypt.hash(req.body.newPassword, 12);
+    await updateUser(user.user_id, { password, updated_by: user.user_id });
+    return res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return res.status(500).json({ message: "Failed to change password" });
+  }
+}
+
+module.exports = { create, getAll, getOne, update, remove, login, changePassword };

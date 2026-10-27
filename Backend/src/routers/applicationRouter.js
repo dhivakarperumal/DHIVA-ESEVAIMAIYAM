@@ -9,6 +9,7 @@ const applicationStaff = [authenticate, authorize('Super Admin', 'Admin', 'Manag
 const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 
 router.post('/track', asyncRoute(controller.trackApplication));
+router.get('/my', authenticate, asyncRoute(controller.getMyApplications));
 router.use(...applicationStaff);
 router.get('/workflow/summary', controller.getWorkflowSummary);
 router.get('/workflow/options', controller.getWorkflowOptions);

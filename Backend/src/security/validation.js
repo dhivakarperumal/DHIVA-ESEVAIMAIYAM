@@ -39,6 +39,11 @@ const loginRules = [
   body("password").notEmpty().withMessage("Password is required"),
 ];
 
+const changePasswordRules = [
+  body("currentPassword").notEmpty().withMessage("Current password is required"),
+  body("newPassword").isLength({ min: 8, max: 255 }).withMessage("New password must be 8-255 characters"),
+];
+
 const listRules = [
   query("page").optional().isInt({ min: 1 }).toInt(),
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
@@ -47,4 +52,13 @@ const listRules = [
 
 const userIdRule = [param("userId").isUUID().withMessage("Invalid user_id")];
 
-module.exports = { validateRequest, createUserRules, updateUserRules, loginRules, listRules, userIdRule, roles };
+module.exports = {
+  validateRequest,
+  createUserRules,
+  updateUserRules,
+  loginRules,
+  changePasswordRules,
+  listRules,
+  userIdRule,
+  roles,
+};

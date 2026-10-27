@@ -12,6 +12,7 @@ import TrackApplicationPage from './Componets/Track/TrackApplicationPage.jsx'
 
 import ContactPage from './Componets/Contact/ContactPage.jsx'
 import Login from './Componets/Auth/Login.jsx'
+import MyAccount from './Componets/Auth/MyAccount.jsx'
 import Register from './Componets/Components/Register.jsx'
 import PrivateRoute from './PrivateRouter/PrivateRouter.jsx'
 import EmployeeDashboard from './Employees/EmployeeDashboard.jsx'
@@ -89,6 +90,14 @@ const router = createHashRouter([
       {
         path: 'register',
         element: <Register />,
+      },
+      {
+        path: 'my-account',
+        element: (
+          <PrivateRoute>
+            <MyAccount />
+          </PrivateRoute>
+        ),
       },
       
       {

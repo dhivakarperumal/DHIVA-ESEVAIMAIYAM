@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getDB } = require('../config/db');
+const { findByUserId } = require('../models/userModel');
 
 const documentDirectory = path.resolve(__dirname, '../../private/application-documents');
 const workflowStatuses = [
@@ -516,6 +517,36 @@ exports.trackApplication = async (req, res) => {
   } catch (error) {
     console.error('Error tracking application:', error);
     res.status(500).json({ success: false, message: 'Unable to check application status right now. Please try again later.' });
+  }
+};
+
+exports.getMyApplications = async (req, res) => {
+  try {
+    const user = await findByUserId(req.user.user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+    if (!user.mobile) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const db = getDB();
+    const normalizeMobileSql = (column) =>
+      `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(TRIM(COALESCE(${column}, ''))), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')`;
+    const [applications] = await db.execute(
+      `SELECT a.application_number, a.status, a.created_at, a.updated_at, s.service_name
+       FROM applications a
+       INNER JOIN services s ON s.id = a.service_id
+       WHERE ${normalizeMobileSql('a.mobile')} = ${normalizeMobileSql('?')}
+       ORDER BY a.created_at DESC, a.id DESC
+       LIMIT 100`,
+      [user.mobile]
+    );
+
+    return res.json({ success: true, data: applications });
+  } catch (error) {
+    console.error('Error loading current user applications:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load your applications right now.' });
   }
 };
 
