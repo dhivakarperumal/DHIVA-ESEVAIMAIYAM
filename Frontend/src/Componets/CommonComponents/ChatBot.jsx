@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api";
 import "./ChatBot.css";
+import {
+  CONTACT_EMAIL,
+  CONTACT_PHONE_HREF,
+  CONTACT_WHATSAPP_NUMBER,
+} from "../../contactInfo";
 
 // ─── Intent Detection ────────────────────────────────────────────────────────
 const ORDER_KEYWORDS = [
@@ -691,15 +696,15 @@ const MessageBubble = ({ msg, onProductClick, onOrderClick, onActionClick }) => 
                   icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
                 },
                 {
-                  label: "WhatsApp", href: "https://wa.me/919876543210", color: "#25d366", bg: "#f0fdf4",
+                  label: "WhatsApp", href: `https://wa.me/${CONTACT_WHATSAPP_NUMBER}`, color: "#25d366", bg: "#f0fdf4",
                   icon: <svg viewBox="0 0 32 32" width="22" height="22" fill="currentColor"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.492.658 4.833 1.806 6.857L2 30l7.338-1.788A13.94 13.94 0 0 0 16 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm6.29 19.89c-.345.172-2.04 1.006-2.356 1.12-.316.115-.546.172-.776-.172-.23-.345-.892-1.12-1.093-1.35-.2-.23-.4-.26-.746-.086-.345.172-1.457.537-2.775 1.713-1.025.916-1.717 2.047-1.918 2.392-.2.345-.022.531.15.703.155.155.345.402.518.603.172.2.23.345.345.575.115.23.057.431-.029.603-.086.172-.776 1.87-1.063 2.56-.28.673-.565.582-.776.593l-.66.012c-.23 0-.603-.086-.919-.431-.316-.345-1.207-1.18-1.207-2.876s1.236-3.337 1.408-3.567c.172-.23 2.432-3.712 5.892-5.207.823-.355 1.466-.567 1.967-.726.827-.263 1.58-.226 2.174-.137.663.099 2.04.834 2.328 1.638.287.804.287 1.492.2 1.638z"/></svg>,
                 },
                 {
-                  label: "Call Us", href: "tel:+919876543210", color: "#8b5cf6", bg: "#f5f3ff",
+                  label: "Call Us", href: CONTACT_PHONE_HREF, color: "#8b5cf6", bg: "#f5f3ff",
                   icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.64-1.64a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
                 },
                 {
-                  label: "Email", href: "mailto:support@store.com", color: "#f59e0b", bg: "#fffbeb",
+                  label: "Email", href: `mailto:${CONTACT_EMAIL}`, color: "#f59e0b", bg: "#fffbeb",
                   icon: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
                 },
                 {

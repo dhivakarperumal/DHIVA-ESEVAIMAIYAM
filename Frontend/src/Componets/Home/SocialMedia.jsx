@@ -8,14 +8,15 @@ import {
   FaWhatsapp,
   FaInstagram,
 } from "react-icons/fa";
+import { CONTACT_EMAIL, CONTACT_WHATSAPP_NUMBER } from "../../contactInfo";
 
 function SocialMedia() {
   const socialLinks = [
     { icon: <FaFacebookF />, url: "https://www.facebook.com/share/1A1X9dVCTm/" },
     { icon: <FaTwitter />, url: "https://x.com/QTechxTpt?t=fmfCt7ZX-5RoQIbHJ-4s_A&s=09" },
-    { icon: <FaGoogle />, url: "mailto:info@qtechx.com" },
+    { icon: <FaGoogle />, url: `mailto:${CONTACT_EMAIL}` },
     { icon: <FaLinkedinIn />, url:"https://www.linkedin.com/in/q-techx-solutions-724346366/" },
-     { icon: <FaWhatsapp className="font-extrabold text-xl" />, url: "https://wa.me/919123589879?text=Hello%20Q-Techx%20Solutions%2C%20I%20am%20interested%20in%20your%20services.%20Please%20share%20more%20details." 
+     { icon: <FaWhatsapp className="font-extrabold text-xl" />, url: `https://wa.me/${CONTACT_WHATSAPP_NUMBER}?text=Hello%20DHIVA%20E-SEVAI%20MAIYAM%2C%20I%20am%20interested%20in%20your%20services.%20Please%20share%20more%20details.`
    }, // ✅ WhatsApp link
     { icon: <FaInstagram className="font-extrabold text-xl" />, url: "https://www.instagram.com/qtech.x?igsh=MXNsODg2YjA5N21wbA==" },
   ];

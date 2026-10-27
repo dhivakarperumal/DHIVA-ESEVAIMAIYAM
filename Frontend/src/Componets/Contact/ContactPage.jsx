@@ -17,33 +17,39 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
+import {
+  CONTACT_ADDRESS,
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_PHONE_HREF,
+  CONTACT_WHATSAPP_NUMBER,
+} from "../../contactInfo";
 
-const address = "123, Main Road, Your Town, Tamil Nadu, India";
 const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
-  address,
+  CONTACT_ADDRESS,
 )}&output=embed`;
 
 const contactCards = [
   {
     title: "Call Us",
-    detail: "+91 98765 43210",
+    detail: CONTACT_PHONE_DISPLAY,
     note: "Speak with our support team.",
-    href: "tel:+919876543210",
+    href: CONTACT_PHONE_HREF,
     Icon: Phone,
   },
   {
     title: "Email Us",
-    detail: "dhivakar305@gmail.com",
+    detail: CONTACT_EMAIL,
     note: "Send your enquiries anytime.",
-    href: "mailto:dhivakar305@gmail.com",
+    href: `mailto:${CONTACT_EMAIL}`,
     Icon: Mail,
   },
   {
     title: "Visit Our Centre",
-    detail: address,
+    detail: CONTACT_ADDRESS,
     note: "Get assistance at our service centre.",
     href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      address,
+      CONTACT_ADDRESS,
     )}`,
     Icon: MapPin,
   },
@@ -154,13 +160,13 @@ const ContactPage = () => {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href="tel:+919876543210"
+                href={CONTACT_PHONE_HREF}
                 className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-500"
               >
                 <Phone size={16} /> Call Us
               </a>
               <a
-                href="https://wa.me/919876543210"
+                href={`https://wa.me/${CONTACT_WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary/70 bg-black/50 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary/20"
@@ -361,11 +367,11 @@ const ContactPage = () => {
             </h2>
             <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-slate-300">
               <MapPin size={18} className="mt-1 shrink-0 text-primary" />
-              {address}
+              {CONTACT_ADDRESS}
             </p>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                address,
+                CONTACT_ADDRESS,
               )}`}
               target="_blank"
               rel="noreferrer"
@@ -447,13 +453,13 @@ const ContactPage = () => {
           </div>
           <div className="flex flex-wrap justify-center gap-3">
             <a
-              href="tel:+919876543210"
+              href={CONTACT_PHONE_HREF}
               className="inline-flex min-h-10 items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-bold text-white transition hover:bg-white hover:text-black"
             >
               <Phone size={15} /> Call Now
             </a>
             <a
-              href="https://wa.me/919876543210"
+              href={`https://wa.me/${CONTACT_WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-10 items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-bold text-white transition hover:bg-white hover:text-black"

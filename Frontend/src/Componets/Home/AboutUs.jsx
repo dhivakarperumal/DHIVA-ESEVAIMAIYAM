@@ -69,7 +69,7 @@ const AboutUs = () => {
               to our community.
             </p>
             <Link
-              to="/contact"
+              to="/about"
               className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(248,116,14,0.25)] transition hover:-translate-y-0.5 hover:bg-orange-500"
             >
               Know More About Us <ArrowRight size={17} />

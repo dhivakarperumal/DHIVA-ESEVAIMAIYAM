@@ -9,6 +9,43 @@ body {
   font-family: "Poppins", sans-serif;
 }
 
+@keyframes header-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.header-marquee-track {
+  animation: header-marquee 36s linear infinite;
+}
+
+.header-marquee-container {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-marquee-track {
+    animation: none;
+    transform: none;
+    width: auto;
+    white-space: normal;
+  }
+
+  .header-marquee-container {
+    overflow: visible;
+  }
+
+  .header-marquee-track > div {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    padding-right: 0;
+  }
+
+  .header-marquee-track > div[aria-hidden="true"] {
+    display: none;
+  }
+}
+
 :root {
   /* Brand Colors */
   --primary: #FF6A00;
@@ -463,4 +500,3 @@ html, body, #root {
 /* Add this at the very end */
 .pl__dot:before { background-color: black; }
 .pl__dot:after { background-color: black; }
-

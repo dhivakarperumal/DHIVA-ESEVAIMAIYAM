@@ -16,6 +16,7 @@ function App() {
   const isAuthPage = currentRoute === "/login" || currentRoute === "/register";
   const isAdmin = currentRoute === "/admin" || currentRoute.startsWith("/admin/");
   const isEmployee = currentRoute === "/employee" || currentRoute.startsWith("/employee/");
+  const isGallery = currentRoute === "/gallery";
   const showPublicChrome = !isAuthPage && !isAdmin && !isEmployee;
 
   if (loading) {
@@ -27,9 +28,9 @@ function App() {
       {showPublicChrome && <Header />}
       {showPublicChrome && <Navbar />}
       <ScrollToTop/>
-      <ScrollNavigator/>
+      {!isGallery && <ScrollNavigator/>}
       <Outlet />
-      {!isAdmin && <FloatingSupport />}
+      {!isAdmin && !isGallery && <FloatingSupport />}
       {showPublicChrome && <Footer />}
     </section>
   );

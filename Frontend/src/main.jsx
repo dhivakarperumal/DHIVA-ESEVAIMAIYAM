@@ -6,7 +6,10 @@ import App from './App.jsx'
 import Home from './Componets/Home/Home.jsx'
 import ServicePage from './Componets/Services/ServicePage.jsx'
 import DocumentsPage from './Componets/Documents/DocumentsPage.jsx'
+import GalleryPage from './Componets/Gallery/GalleryPage.jsx'
+import AboutPage from './Componets/About/AboutPage.jsx'
 import TrackApplicationPage from './Componets/Track/TrackApplicationPage.jsx'
+
 import ContactPage from './Componets/Contact/ContactPage.jsx'
 import Login from './Componets/Auth/Login.jsx'
 import Register from './Componets/Components/Register.jsx'
@@ -66,6 +69,14 @@ const router = createHashRouter([
       {
         path: 'documents',
         element: <DocumentsPage />,
+      },
+      {
+        path: 'gallery',
+        element: <GalleryPage />,
+      },
+      {
+        path: 'about',
+        element: <AboutPage />,
       },
       {
         path: 'track',

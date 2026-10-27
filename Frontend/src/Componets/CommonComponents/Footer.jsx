@@ -7,13 +7,20 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 import PageContainer from "./PageContainer";
+import {
+  CONTACT_ADDRESS,
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_PHONE_HREF,
+  CONTACT_WHATSAPP_NUMBER,
+} from "../../contactInfo";
 
 const quickLinks = [
   { label: "Home", to: "/" },
   { label: "Services", to: "/contact" },
   { label: "Documents Required", to: "/contact" },
   { label: "Track Application", to: "/contact" },
-  { label: "About Us", to: "/contact" },
+  { label: "About Us", to: "/about" },
   { label: "Contact Us", to: "/contact" },
 ];
 
@@ -31,12 +38,11 @@ const socialLinks = [
   { label: "Facebook", Icon: FaFacebookF, href: "https://www.facebook.com/" },
   { label: "Instagram", Icon: FaInstagram, href: "https://www.instagram.com/" },
   { label: "YouTube", Icon: FaYoutube, href: "https://www.youtube.com/" },
-  { label: "WhatsApp", Icon: FaWhatsapp, href: "https://wa.me/919876543210" },
+  { label: "WhatsApp", Icon: FaWhatsapp, href: `https://wa.me/${CONTACT_WHATSAPP_NUMBER}` },
 ];
 
 const Footer = () => {
-  const address = "123, Main Road, Your Town, Tamil Nadu, India";
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT_ADDRESS)}`;
 
   return (
     <footer className="border-t border-primary/30 bg-[#05080b] text-white">
@@ -116,20 +122,20 @@ const Footer = () => {
             <ul className="mt-4 space-y-4">
               <li>
                 <a
-                  href="tel:+919876543210"
+                  href={CONTACT_PHONE_HREF}
                   className="flex items-start gap-3 text-sm text-slate-300 transition hover:text-primary"
                 >
                   <Phone size={17} className="mt-0.5 shrink-0 text-primary" />
-                  <span>+91 98765 43210</span>
+                  <span>{CONTACT_PHONE_DISPLAY}</span>
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:dhivakar305@gmail.com"
+                  href={`mailto:${CONTACT_EMAIL}`}
                   className="flex items-start gap-3 break-all text-sm text-slate-300 transition hover:text-primary"
                 >
                   <Mail size={17} className="mt-0.5 shrink-0 text-primary" />
-                  <span>dhivakar305@gmail.com</span>
+                  <span>{CONTACT_EMAIL}</span>
                 </a>
               </li>
               <li>
@@ -140,7 +146,7 @@ const Footer = () => {
                   className="flex items-start gap-3 text-sm leading-6 text-slate-300 transition hover:text-primary"
                 >
                   <MapPin size={18} className="mt-0.5 shrink-0 text-primary" />
-                  <span>{address}</span>
+                  <span>{CONTACT_ADDRESS}</span>
                 </a>
               </li>
               <li className="flex items-start gap-3 text-sm leading-6 text-slate-300">

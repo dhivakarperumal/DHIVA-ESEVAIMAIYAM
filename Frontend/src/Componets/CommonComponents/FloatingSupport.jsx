@@ -2,18 +2,20 @@ import React, { useState } from "react";
 import { Phone } from "lucide-react";
 import "./FloatingSupport.css";
 import ChatBot from "./ChatBot";
+import {
+  CONTACT_PHONE_HREF,
+  CONTACT_WHATSAPP_NUMBER,
+} from "../../contactInfo";
 
 const FloatingSupport = () => {
   const [chatOpen, setChatOpen] = useState(false);
-  const whatsappNumber = "919876543210";
-  const phoneNumber = "+919876543210";
 
   const handleWhatsApp = () => {
-    window.open(`https://wa.me/${whatsappNumber}?text=Hello, I need some help!`, '_blank');
+    window.open(`https://wa.me/${CONTACT_WHATSAPP_NUMBER}?text=Hello, I need some help!`, '_blank');
   };
 
   const handleCall = () => {
-    window.open(`tel:${phoneNumber}`, '_self');
+    window.open(CONTACT_PHONE_HREF, '_self');
   };
 
   return (

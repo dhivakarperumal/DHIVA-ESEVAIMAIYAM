@@ -8,6 +8,7 @@ const router = express.Router();
 const applicationStaff = [authenticate, authorize('Super Admin', 'Admin', 'Manager', 'Staff', 'Employee')];
 const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 
+router.post('/track', asyncRoute(controller.trackApplication));
 router.use(...applicationStaff);
 router.get('/workflow/summary', controller.getWorkflowSummary);
 router.get('/workflow/options', controller.getWorkflowOptions);

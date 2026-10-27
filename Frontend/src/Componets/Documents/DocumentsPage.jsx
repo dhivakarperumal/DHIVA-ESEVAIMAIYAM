@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
+import { CONTACT_WHATSAPP_NUMBER } from "../../contactInfo";
 
 const categories = [
   { name: "All Services", Icon: BriefcaseBusiness },
@@ -380,7 +381,7 @@ const DocumentsPage = () => {
               Contact Us <ArrowRight size={16} />
             </Link>
             <a
-              href="https://wa.me/919876543210"
+              href={`https://wa.me/${CONTACT_WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/70 bg-white/10 px-5 py-2 text-sm font-bold text-white transition hover:bg-white/20"

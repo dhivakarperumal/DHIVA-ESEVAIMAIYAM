@@ -1,6 +1,7 @@
 import { ArrowRight, Check, FileText, Headset, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
+import { CONTACT_PHONE_HREF } from "../../contactInfo";
 
 const supportPoints = [
   "Expert guidance",
@@ -53,7 +54,7 @@ const HelpBanner = () => {
                   Visit Our Centre <ArrowRight size={16} />
                 </Link>
                 <a
-                  href="tel:+919659133504"
+                  href={CONTACT_PHONE_HREF}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-500"
                 >
                   <Phone size={16} />
