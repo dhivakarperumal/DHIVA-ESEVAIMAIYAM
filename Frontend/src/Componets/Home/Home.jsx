@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { FileCheck2, Fingerprint, Landmark, Printer, Smartphone } from "lucide-react";
-import Hero from "./Hero";
 import AboutUs from "./AboutUs";
 import GovernmentServicesBanner from "./GovernmentServicesBanner";
 import WhyChooseSection from "./WhyChooseSection";
@@ -18,8 +17,6 @@ const services = [
 const Home = () => {
   return (
     <main className="bg-[#07090c] text-white">
-      <Hero />
-
       <section
         id="popular-services"
         className="mx-auto max-w-[1700px] px-[6%] py-8 sm:px-[5%] lg:px-[3%]"

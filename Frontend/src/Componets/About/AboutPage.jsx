@@ -96,56 +96,6 @@ const commitments = [
 const AboutPage = () => {
   return (
     <main className="overflow-hidden bg-[#07090c] text-white">
-      <section className="relative isolate border-b border-primary/30">
-        <img
-          src="/Hero/Modern%20DHIVA%20E-Sevai%20Reception%20Center.png"
-          alt="The DHIVA E-Sevai Maiyam reception and service centre"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/90 to-black/25" />
-        <PageContainer className="flex min-h-[390px] items-center py-12 sm:min-h-[440px]">
-          <div className="max-w-2xl">
-            <nav aria-label="Breadcrumb" className="mb-5 text-sm text-slate-300">
-              <Link to="/" className="transition hover:text-primary">
-                Home
-              </Link>
-              <span className="mx-2 text-primary">›</span>
-              <span className="text-white">About Us</span>
-            </nav>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary sm:text-sm">
-              Your trusted digital service centre
-            </p>
-            <h1 className="mt-3 text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl">
-              About
-              <span className="block">DHIVA <span className="text-primary">E-SEVAI MAIYAM</span></span>
-            </h1>
-            <h2 className="mt-4 text-lg font-bold sm:text-xl">
-              Your trusted digital service centre
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
-              We make government services simpler and more accessible for
-              everyone. From online applications to document support, our team
-              is here to guide you at every step.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                to="/service"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-500"
-              >
-                Our Services <ArrowRight size={17} />
-              </Link>
-              <Link
-                to="/contact"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/15"
-              >
-                Contact Us <ArrowRight size={17} />
-              </Link>
-            </div>
-          </div>
-        </PageContainer>
-      </section>
-
       <PageContainer className="py-5 sm:py-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {highlights.map(({ value, label, Icon }) => (

@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
 import {
   CONTACT_ADDRESS,
@@ -132,52 +131,6 @@ const ContactPage = () => {
 
   return (
     <main className="bg-[#080b0e] text-white">
-      <section className="relative isolate overflow-hidden border-b border-primary/30">
-        <img
-          src="/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png"
-          alt="Dhiva E-Sevai Maiyam service centre"
-          fetchPriority="high"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/95 via-black/75 to-black/25" />
-        <PageContainer className="py-12 sm:py-16 lg:py-20">
-          <div className="text-xs font-medium text-slate-300">
-            <Link to="/" className="transition hover:text-primary">Home</Link>
-            <span className="mx-2 text-primary">›</span>
-            <span className="text-white">Contact Us</span>
-          </div>
-          <div className="mt-6 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary sm:text-sm">
-              Get in touch
-            </p>
-            <h1 className="mt-2 text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
-              We’re here
-              <span className="block text-primary">to help you</span>
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
-              Have questions about certificates, online applications or
-              documents? Our team is ready to support you.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href={CONTACT_PHONE_HREF}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-500"
-              >
-                <Phone size={16} /> Call Us
-              </a>
-              <a
-                href={`https://wa.me/${CONTACT_WHATSAPP_NUMBER}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary/70 bg-black/50 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary/20"
-              >
-                <MessageCircle size={16} className="text-primary" /> Chat on WhatsApp
-              </a>
-            </div>
-          </div>
-        </PageContainer>
-      </section>
-
       <PageContainer className="py-10 sm:py-14">
         <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
           <section aria-labelledby="contact-information-heading">

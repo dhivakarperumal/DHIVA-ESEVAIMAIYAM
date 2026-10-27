@@ -1,5 +1,4 @@
-import React from "react";
-import PageHeader from "../CommenComponents/PageHeader";
+import PageHeader from "./PageHeader";
 
 const TermsAndConditions = () => {
   return (

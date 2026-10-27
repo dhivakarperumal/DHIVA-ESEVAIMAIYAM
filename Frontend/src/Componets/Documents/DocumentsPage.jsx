@@ -202,46 +202,6 @@ const DocumentsPage = () => {
 
   return (
     <main className="bg-[#080a0d] text-white">
-      <section className="relative isolate overflow-hidden border-b border-orange-500/30 bg-black">
-        <img
-          src="/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png"
-          alt="DHIVA E-Sevai Maiyam team helping a customer prepare documents"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/85 to-black/30" />
-        <PageContainer className="grid min-h-[270px] items-center gap-6 py-8 sm:min-h-[310px] lg:grid-cols-[minmax(0,1fr)_230px]">
-          <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-2 text-xs text-slate-300 sm:text-sm">
-              <Link to="/" className="transition hover:text-primary">Home</Link>
-              <span className="text-primary">›</span>
-              <span className="text-white">Document Required</span>
-            </div>
-            <h1 className="text-4xl font-black leading-[1.04] sm:text-5xl">
-              Document <span className="block text-primary">Requirements</span>
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200">
-              Find the required documents for all government services. Prepare
-              your documents in advance for a faster and smoother application process.
-            </p>
-          </div>
-          <aside className="hidden rounded-xl border border-primary/40 bg-black/65 p-4 backdrop-blur-sm lg:block">
-            <h2 className="mb-2 text-sm font-bold">Quick Information</h2>
-            {[
-              "Original documents for verification",
-              "Self-attested photocopies required",
-              "Additional documents may be required",
-              "Requirements may vary by case",
-            ].map((text, index) => (
-              <div key={text} className="flex gap-2 border-t border-white/10 py-2 text-xs leading-4 text-slate-200">
-                <FileCheck2 size={15} className="mt-0.5 shrink-0 text-primary" />
-                <span>{text}</span>
-                {index === 3 && <span className="sr-only">Please confirm the exact checklist with our team.</span>}
-              </div>
-            ))}
-          </aside>
-        </PageContainer>
-      </section>
-
       <PageContainer className="py-5 sm:py-7">
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {categories.map(({ name, Icon }) => {

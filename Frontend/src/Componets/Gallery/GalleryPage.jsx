@@ -5,12 +5,10 @@ import {
   Building2,
   BriefcaseBusiness,
   CalendarDays,
-  Camera,
   FileText,
   HandHelping,
   Image,
   Landmark,
-  MapPin,
   Search,
   Users,
   X,
@@ -137,71 +135,6 @@ function GalleryPage() {
 
   return (
     <main className="min-h-screen bg-[#080808] text-white">
-      <section className="relative isolate overflow-hidden border-b border-orange-500/30">
-        <img
-          src="/Hero/DHIVA E-Sevai Modern Service Center.png"
-          alt=""
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/85 to-black/35" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-transparent to-black/15" />
-
-        <PageContainer className="grid min-h-[270px] items-center gap-8 py-9 lg:grid-cols-[1fr_auto]">
-          <div className="max-w-3xl">
-            <div className="mb-3 flex items-center gap-2 text-sm text-white/70">
-              <Link to="/" className="transition hover:text-orange-400">
-                Home
-              </Link>
-              <span>/</span>
-              <span className="text-orange-400">Gallery</span>
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
-              Our Gallery
-            </p>
-            <h1 className="mt-1 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-              Moments at
-              <span className="block text-white">
-                DHIVA <span className="text-orange-500">E-SEVAI MAIYAM</span>
-              </span>
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">
-              Take a look at our service centre, customer support, and the
-              digital services we bring to our community.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-2.5 sm:gap-4">
-              {[
-                { icon: Camera, value: "150+", label: "Photos" },
-                { icon: Users, value: "1000+", label: "Happy Customers" },
-                { icon: FileText, value: "5000+", label: "Applications" },
-                { icon: MapPin, value: "1", label: "Service Centre" },
-              ].map(({ icon: Icon, value, label }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 border-r border-white/20 pr-3 last:border-0 sm:pr-5"
-                >
-                  <Icon size={22} className="shrink-0 text-orange-500" />
-                  <span>
-                    <strong className="block text-sm leading-4">{value}</strong>
-                    <span className="text-[10px] text-white/70">{label}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <blockquote className="hidden max-w-48 rounded-2xl border border-orange-500/40 bg-black/55 px-5 py-4 text-sm leading-6 shadow-[0_0_35px_rgba(249,115,22,0.12)] lg:block">
-            <span className="block text-4xl font-black leading-5 text-orange-500">
-              “
-            </span>
-            Serving our community with digital solutions
-            <span className="mt-2 block text-right text-4xl font-black leading-5 text-orange-500">
-              ”
-            </span>
-          </blockquote>
-        </PageContainer>
-      </section>
-
       <section
         aria-label="Gallery categories"
         className="border-b border-white/10 bg-[#090909]"

@@ -157,34 +157,6 @@ const TrackApplicationPage = () => {
 
   return (
     <main className="min-h-screen bg-[#080a0d] text-white">
-      <section className="relative isolate overflow-hidden border-b border-primary/30">
-        <img
-          src="/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png"
-          alt=""
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/85 to-black/25" />
-        <PageContainer className="flex min-h-[220px] items-center py-8 sm:min-h-[260px]">
-          <div className="max-w-2xl">
-            <nav aria-label="Breadcrumb" className="mb-3 text-sm text-slate-300">
-              <Link to="/" className="transition hover:text-primary">Home</Link>
-              <span className="mx-2 text-primary">›</span>
-              <span className="text-white">Track Application</span>
-            </nav>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-              Application status
-            </p>
-            <h1 className="mt-2 text-4xl font-black leading-tight sm:text-5xl">
-              Track Your <span className="text-primary">Application</span>
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200 sm:text-base">
-              Check the status of your government service application. Enter
-              your details to see the latest available update.
-            </p>
-          </div>
-        </PageContainer>
-      </section>
-
       <PageContainer className="py-7 sm:py-9">
         <section className="rounded-2xl border border-primary/50 bg-gradient-to-br from-[#111315] to-[#080a0c] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.3)] sm:p-6">
           <div className="mb-5 flex items-center gap-3">

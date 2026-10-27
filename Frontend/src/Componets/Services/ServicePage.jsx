@@ -178,68 +178,8 @@ const ServicePage = () => {
       });
   }, [apiServices, searchTerm, selectedCategory]);
 
-  const scrollToServices = () => {
-    document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <main className="bg-[#080a0d] text-white">
-      <section className="relative isolate overflow-hidden border-b border-orange-500/30 bg-black">
-        <img
-          src="/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png"
-          alt="DHIVA E-Sevai Maiyam service centre"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/85 to-black/25" />
-        <PageContainer className="grid min-h-[390px] items-center gap-8 py-12 sm:min-h-[440px] lg:grid-cols-[minmax(0,1fr)_250px]">
-          <div className="max-w-2xl">
-            <div className="mb-4 flex items-center gap-2 text-sm text-slate-300">
-              <Link to="/" className="transition hover:text-primary">Home</Link>
-              <span className="text-primary">›</span>
-              <span className="text-white">Services</span>
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary sm:text-sm">
-              Our Services
-            </p>
-            <h1 className="mt-2 text-4xl font-black leading-[1.06] sm:text-5xl lg:text-6xl">
-              All Your Digital Services{" "}
-              <span className="text-primary">in One Place</span>
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-200 sm:text-base">
-              Government applications, certificates, document services, online
-              forms and more — with expert guidance and reliable support.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={scrollToServices}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-500"
-              >
-                Explore Services <ArrowRight size={17} />
-              </button>
-              <Link
-                to="/contact"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/15"
-              >
-                Contact Us <ArrowRight size={17} className="text-primary" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="hidden rounded-2xl border border-primary/40 bg-black/60 p-4 backdrop-blur-sm lg:block">
-            <p className="mb-3 text-sm font-bold text-white">How we can help</p>
-            {["Applications", "Certificates", "Print & Scan", "Online Forms", "Document Support", "Expert Guidance"].map((item) => (
-              <div key={item} className="flex items-center gap-2 border-t border-white/10 py-2.5 text-xs text-slate-200">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-primary">
-                  <Check size={14} />
-                </span>
-                {item}
-              </div>
-            ))}
-          </div>
-        </PageContainer>
-      </section>
-
       <PageContainer className="py-7 sm:py-9">
         <section id="services" aria-labelledby="services-heading" className="scroll-mt-24">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
