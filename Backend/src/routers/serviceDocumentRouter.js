@@ -6,7 +6,7 @@ const router = express.Router();
 const documentManagers = [authenticate, authorize('Super Admin', 'Admin', 'Manager')];
 
 router.get('/', (req, res, next) => {
-  if (req.query.active === 'true' && req.query.service_id) return next();
+  if (req.query.active === 'true') return next();
   return documentManagers[0](req, res, (error) => {
     if (error) return next(error);
     documentManagers[1](req, res, next);

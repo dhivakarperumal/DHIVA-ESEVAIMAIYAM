@@ -5,12 +5,15 @@ import {
   Banknote,
   BriefcaseBusiness,
   Check,
+  ChevronDown,
   FileBadge,
   FileText,
+  LayoutGrid,
   Landmark,
   Laptop,
   Lightbulb,
   LoaderCircle,
+  List,
   MapPinned,
   MessageCircle,
   Printer,
@@ -103,6 +106,7 @@ const ServicePage = () => {
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Services");
+  const [viewMode, setViewMode] = useState("cards");
   const [searchParams, setSearchParams] = useSearchParams();
   const searchTerm = searchParams.get("search") ?? "";
 
@@ -192,28 +196,63 @@ const ServicePage = () => {
                 Find the right service and get the help you need.
               </p>
             </div>
-            <label className="flex h-11 w-full items-center gap-2 rounded-xl border border-white/15 bg-[#101317] px-3 text-slate-400 transition focus-within:border-primary sm:max-w-xs">
-              <Search size={17} />
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => {
-                  const query = event.target.value;
-                  setSearchParams((currentParams) => {
-                    const nextParams = new URLSearchParams(currentParams);
-                    if (query) {
-                      nextParams.set("search", query);
-                    } else {
-                      nextParams.delete("search");
-                    }
-                    return nextParams;
-                  }, { replace: true });
-                }}
-                placeholder="Search services..."
-                aria-label="Search services"
-                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-              />
-            </label>
+            <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
+              <label className="flex h-11 w-full items-center gap-2 rounded-xl border border-white/15 bg-[#101317] px-3 text-slate-400 transition focus-within:border-primary sm:w-[min(100%,24rem)]">
+                <Search size={17} />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => {
+                    const query = event.target.value;
+                    setSearchParams((currentParams) => {
+                      const nextParams = new URLSearchParams(currentParams);
+                      if (query) {
+                        nextParams.set("search", query);
+                      } else {
+                        nextParams.delete("search");
+                      }
+                      return nextParams;
+                    }, { replace: true });
+                  }}
+                  placeholder="Search services..."
+                  aria-label="Search services"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                />
+              </label>
+              <label className="relative flex h-11 w-full items-center rounded-xl border border-white/15 bg-[#101317] px-3 text-sm text-slate-200 focus-within:border-primary sm:w-[200px] sm:shrink-0">
+                <span className="sr-only">Filter by category</span>
+                <select
+                  value={selectedCategory}
+                  onChange={(event) => setSelectedCategory(event.target.value)}
+                  className="h-full w-full appearance-none bg-transparent pr-6 text-sm outline-none"
+                >
+                  {categories.map(({ name }) => (
+                    <option key={name} value={name} className="bg-[#111418]">{name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-3 text-slate-400" />
+              </label>
+              <div className="flex h-11 self-end rounded-lg border border-white/15 bg-[#101317] p-1 sm:self-auto" role="group" aria-label="Service display mode">
+                <button
+                  type="button"
+                  aria-label="Card view"
+                  aria-pressed={viewMode === "cards"}
+                  onClick={() => setViewMode("cards")}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition ${viewMode === "cards" ? "bg-primary text-white" : "text-slate-300 hover:text-white"}`}
+                >
+                  <LayoutGrid size={15} /> Cards
+                </button>
+                <button
+                  type="button"
+                  aria-label="Table view"
+                  aria-pressed={viewMode === "table"}
+                  onClick={() => setViewMode("table")}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition ${viewMode === "table" ? "bg-primary text-white" : "text-slate-300 hover:text-white"}`}
+                >
+                  <List size={15} /> Table
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
@@ -249,7 +288,7 @@ const ServicePage = () => {
               <p className="mt-3 font-semibold text-white">Unable to load services</p>
               <p className="mt-1 text-sm text-slate-300">{servicesError}</p>
             </div>
-          ) : filteredServices.length > 0 ? (
+          ) : filteredServices.length > 0 && viewMode === "cards" ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {filteredServices.map(({ id, title, category, description, tasks, Icon }) => (
                 <article
@@ -284,6 +323,43 @@ const ServicePage = () => {
                   </Link>
                 </article>
               ))}
+            </div>
+          ) : filteredServices.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-white/10">
+              <table className="w-full min-w-[720px] border-collapse text-left">
+                <thead className="bg-[#171a1f] text-xs uppercase tracking-wide text-slate-400">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">Service</th>
+                    <th scope="col" className="px-4 py-3">Category</th>
+                    <th scope="col" className="px-4 py-3">Description</th>
+                    <th scope="col" className="px-4 py-3">Documents</th>
+                    <th scope="col" className="px-4 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10 bg-[#101317]">
+                  {filteredServices.map(({ id, title, category, description, tasks, Icon }) => (
+                    <tr key={id} className="text-sm text-slate-200 transition hover:bg-white/[0.03]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <Icon size={18} className="shrink-0 text-primary" />
+                          <span className="font-semibold text-white">{title}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">{category}</td>
+                      <td className="max-w-sm px-4 py-3 text-xs leading-5 text-slate-400">{description}</td>
+                      <td className="px-4 py-3 text-xs text-slate-300">{tasks.length ? tasks.join(", ") : "Contact us for details"}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          to="/contact"
+                          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-orange-500"
+                        >
+                          Apply Now <ArrowRight size={13} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="rounded-xl border border-white/10 bg-[#101317] px-4 py-12 text-center">
