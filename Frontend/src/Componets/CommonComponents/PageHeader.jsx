@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
+import { m, useReducedMotion } from "framer-motion";
 
 const PageHeader = ({ title, description, background, actions = [] }) => {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
-    <header
+    <m.header
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="relative flex min-h-[220px] w-full items-center border-b border-primary/30 bg-cover bg-center px-[6%] py-10 text-white sm:min-h-[260px] sm:px-[5%] lg:min-h-[290px] lg:px-[3%]"
       style={{
         backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.92), rgba(0,0,0,.68) 55%, rgba(0,0,0,.3)), url("${background || "/Hero/pageheders.png"}")`,
@@ -49,7 +55,7 @@ const PageHeader = ({ title, description, background, actions = [] }) => {
           </div>
         )}
       </div>
-    </header>
+    </m.header>
   );
 };
 

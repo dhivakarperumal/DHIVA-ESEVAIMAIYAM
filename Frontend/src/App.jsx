@@ -1,5 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import {
+  LazyMotion,
+  MotionConfig,
+  domAnimation,
+  m,
+  useAnimationControls,
+  useReducedMotion,
+} from "framer-motion";
 import Navbar from "./Componets/CommonComponents/Navbar";
 import Header from "./Componets/CommonComponents/Header";
 import Footer from "./Componets/CommonComponents/Footer";
@@ -69,6 +77,8 @@ const pageHeaders = {
 function App() {
   const [loading] = useState(false);
   const { pathname, hash } = useLocation();
+  const shouldReduceMotion = useReducedMotion();
+  const routeAnimation = useAnimationControls();
   const currentRoute = hash?.startsWith("#") ? hash.slice(1) : pathname;
   const isAuthPage = currentRoute === "/login" || currentRoute === "/register";
   const isAdmin = currentRoute === "/admin" || currentRoute.startsWith("/admin/");
@@ -76,23 +86,46 @@ function App() {
   const isGallery = currentRoute === "/gallery";
   const showPublicChrome = !isAuthPage && !isAdmin && !isEmployee;
 
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      routeAnimation.set({ opacity: 1 });
+      return;
+    }
+
+    routeAnimation.set({ opacity: 0 });
+    routeAnimation.start({
+      opacity: 1,
+      transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+    });
+  }, [pathname, routeAnimation, shouldReduceMotion]);
+
   if (loading) {
     return <Loader />;
   }
 
   return (
-    <section>
-      {showPublicChrome && <Header />}
-      {showPublicChrome && <Navbar />}
-      {showPublicChrome && pageHeaders[currentRoute] && (
-        <PageHeader {...pageHeaders[currentRoute]} />
-      )}
-      <ScrollToTop/>
-      {!isGallery && <ScrollNavigator/>}
-      <Outlet />
-      {!isAdmin && !isGallery && <FloatingSupport />}
-      {showPublicChrome && <Footer />}
-    </section>
+    <MotionConfig reducedMotion="user">
+      <LazyMotion features={domAnimation}>
+        <section>
+          {showPublicChrome && <Header />}
+          {showPublicChrome && <Navbar />}
+          {showPublicChrome && pageHeaders[currentRoute] && (
+            <PageHeader key={currentRoute} {...pageHeaders[currentRoute]} />
+          )}
+          <ScrollToTop/>
+          {!isGallery && <ScrollNavigator/>}
+          <m.div
+            className="route-transition"
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={routeAnimation}
+          >
+            <Outlet />
+          </m.div>
+          {!isAdmin && !isGallery && <FloatingSupport />}
+          {showPublicChrome && <Footer />}
+        </section>
+      </LazyMotion>
+    </MotionConfig>
   );
 }
 

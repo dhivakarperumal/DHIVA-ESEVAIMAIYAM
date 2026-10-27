@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageContainer from "../CommonComponents/PageContainer";
+import { m, useReducedMotion } from "framer-motion";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -59,6 +61,29 @@ const heroSlides = [
 ];
 
 const Hero = () => {
+  const shouldReduceMotion = useReducedMotion();
+  const heroContentVariants = {
+    hidden: { opacity: 0, y: 18 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.65,
+        ease: [0.22, 1, 0.36, 1],
+        staggerChildren: 0.1,
+      },
+    },
+  };
+  const heroItemVariants = {
+    hidden: { opacity: 0, y: 14 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    },
+  };
+  const [activeSlide, setActiveSlide] = useState(0);
+
   return (
     <section
       aria-label="Dhiva E-Sevai Maiyam hero"
@@ -74,6 +99,7 @@ const Hero = () => {
           pauseOnMouseEnter: false,
           stopOnLastSlide: false,
         }}
+        onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
         pagination={{ clickable: true }}
         className="hero-swiper [&_.swiper-pagination]:!bottom-4 [&_.swiper-pagination-bullet]:!bg-white/70 [&_.swiper-pagination-bullet-active]:!bg-primary"
       >
@@ -103,21 +129,31 @@ const Hero = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/10" />
             <div className="relative z-[1]">
               <PageContainer className="flex min-h-[480px] items-center py-10 sm:min-h-[540px] lg:min-h-[min(40vw,620px)]">
-                <div className="max-w-xl">
-                  <p className="inline-flex rounded-full border border-primary/60 bg-black/50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-orange-200 sm:text-xs">
+                <m.div
+                  key={src}
+                  className="max-w-xl"
+                  initial={shouldReduceMotion ? false : "hidden"}
+                  animate={
+                    shouldReduceMotion || activeSlide === index
+                      ? "visible"
+                      : "hidden"
+                  }
+                  variants={heroContentVariants}
+                >
+                  <m.p variants={heroItemVariants} className="inline-flex rounded-full border border-primary/60 bg-black/50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-orange-200 sm:text-xs">
                     {eyebrow}
-                  </p>
-                  <h1 className="mt-5 text-4xl font-black leading-[1.05] text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
+                  </m.p>
+                  <m.h1 variants={heroItemVariants} className="mt-5 text-4xl font-black leading-[1.05] text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
                     {title}
                     <span className="mt-1 block text-primary">{highlight}</span>
-                  </h1>
-                  <h2 className="mt-4 text-lg font-bold text-white sm:text-xl">
+                  </m.h1>
+                  <m.h2 variants={heroItemVariants} className="mt-4 text-lg font-bold text-white sm:text-xl">
                     {subtitle}
-                  </h2>
-                  <p className="mt-3 max-w-lg text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
+                  </m.h2>
+                  <m.p variants={heroItemVariants} className="mt-3 max-w-lg text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
                     {description}
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-3">
+                  </m.p>
+                  <m.div variants={heroItemVariants} className="mt-6 flex flex-wrap gap-3">
                     <Link
                       to="/contact"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(248,116,14,0.35)] transition hover:-translate-y-0.5 hover:bg-orange-500"
@@ -130,8 +166,8 @@ const Hero = () => {
                     >
                       {secondaryAction} <ArrowRight size={16} className="text-primary" />
                     </Link>
-                  </div>
-                </div>
+                  </m.div>
+                </m.div>
               </PageContainer>
             </div>
           </SwiperSlide>

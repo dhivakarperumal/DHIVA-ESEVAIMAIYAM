@@ -108,7 +108,13 @@ const UserManagement = () => {
       closeAddUser();
       window.alert(editingUser ? 'User updated successfully' : 'User created successfully');
     } catch (error) {
-      window.alert(error.response?.data?.message || 'Unable to create user');
+      const responseData = error.response?.data;
+      const validationMessages = responseData?.errors?.map((item) => item.msg).filter(Boolean);
+      window.alert(
+        validationMessages?.length
+          ? validationMessages.join('\n')
+          : responseData?.message || 'Unable to create user'
+      );
     } finally {
       setSavingUser(false);
     }
@@ -496,7 +502,7 @@ const UserManagement = () => {
             </div>
 
             {/* Drawer Body (Form) */}
-            <form onSubmit={saveUser} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+            <form id="user-management-form" onSubmit={saveUser} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm text-gray-300 font-medium">Display Name</label>
@@ -560,7 +566,7 @@ const UserManagement = () => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">Password must be at least 6 characters long.</p>
+                <p className="text-xs text-gray-500">Password must be at least 8 characters long.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -599,7 +605,7 @@ const UserManagement = () => {
               <button type="button" onClick={closeAddUser} className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium">
                 Cancel
               </button>
-              <button type="button" onClick={() => saveUser({ preventDefault: () => {} })} disabled={savingUser} className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <button type="submit" form="user-management-form" disabled={savingUser} className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                 <UserPlus size={18} />
                 <span>{savingUser ? 'Saving...' : editingUser ? 'Update User' : 'Save User'}</span>
               </button>
