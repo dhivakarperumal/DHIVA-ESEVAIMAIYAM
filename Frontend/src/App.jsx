@@ -15,7 +15,6 @@ const pageHeaders = {
   "/service": {
     title: "Our Services",
     description: "Explore government applications, certificates, document services and more.",
-    background: "/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png",
     actions: [
       { label: "Documents Required", to: "/documents" },
       { label: "Contact Us", to: "/contact", variant: "secondary" },
@@ -24,7 +23,6 @@ const pageHeaders = {
   "/documents": {
     title: "Documents Required",
     description: "Find the documents needed for government services and prepare for your application.",
-    background: "/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png",
     actions: [
       { label: "View Services", to: "/service" },
       { label: "Contact Us", to: "/contact", variant: "secondary" },
@@ -33,7 +31,6 @@ const pageHeaders = {
   "/track": {
     title: "Track Application",
     description: "Check the latest available update for your government service application.",
-    background: "/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png",
     actions: [
       { label: "Our Services", to: "/service" },
       { label: "Get Support", to: "/contact", variant: "secondary" },
@@ -42,7 +39,6 @@ const pageHeaders = {
   "/about": {
     title: "About Us",
     description: "Learn how DHIVA E-SEVAI MAIYAM helps make government services more accessible.",
-    background: "/Hero/Modern%20DHIVA%20E-Sevai%20Reception%20Center.png",
     actions: [
       { label: "Our Services", to: "/service" },
       { label: "Contact Us", to: "/contact", variant: "secondary" },
@@ -51,7 +47,6 @@ const pageHeaders = {
   "/gallery": {
     title: "Gallery",
     description: "Take a look at our service centre, customer support and community services.",
-    background: "/Hero/DHIVA%20E-Sevai%20Modern%20Service%20Center.png",
     actions: [
       { label: "Explore Services", to: "/service" },
       { label: "Contact Us", to: "/contact", variant: "secondary" },
@@ -60,7 +55,6 @@ const pageHeaders = {
   "/contact": {
     title: "Contact Us",
     description: "Have questions about certificates, applications or documents? Our team is ready to help.",
-    background: "/Hero/DHIVA%20E-Sevai%20Maiyam%20Service%20Center.png",
     actions: [
       { label: "Call Us", href: CONTACT_PHONE_HREF },
       {

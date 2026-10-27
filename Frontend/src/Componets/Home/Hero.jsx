@@ -45,7 +45,7 @@ const heroSlides = [
     secondaryAction: "Contact Us",
   },
   {
-    src: "/Hero/Modern%20Orange-Black%20Digital%20Service%20Center.png",
+    src: "/Hero/Dhiva%20E-Sevai%20Maiyam%20Service%20Center%20(1).png",
     alt: "Dhiva E-Sevai Maiyam digital service center",
     eyebrow: "Fast, secure and dependable",
     title: "Your Digital",
