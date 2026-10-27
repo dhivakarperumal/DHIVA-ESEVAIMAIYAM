@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Clock3, Mail, MapPin, Phone } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   FaFacebookF,
   FaInstagram,
@@ -42,12 +43,20 @@ const socialLinks = [
 ];
 
 const Footer = () => {
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT_ADDRESS)}`;
+  const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(CONTACT_ADDRESS)}`;
+
+  const handleSubscribe = (event) => {
+    event.preventDefault();
+    const email = new FormData(event.currentTarget).get("subscription-email");
+    const subject = encodeURIComponent("Email subscription request");
+    const body = encodeURIComponent(`Please add this email address to your updates list: ${email}`);
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+  };
 
   return (
     <footer className="border-t border-primary/30 bg-[#05080b] text-white">
       <PageContainer className="py-10 sm:py-12">
-        <div className="grid gap-9 sm:grid-cols-2 lg:grid-cols-[1.3fr_0.75fr_0.9fr_1.2fr] lg:gap-10">
+        <div className="grid gap-9 sm:grid-cols-2 lg:grid-cols-[1.3fr_0.75fr_0.9fr_1.2fr_0.85fr] lg:gap-8">
           <div>
             <Link to="/" className="inline-flex items-center gap-3">
               <img
@@ -154,6 +163,60 @@ const Footer = () => {
                 <span>Mon - Sat: 9:00 AM - 8:00 PM<br />Sunday: 9:00 AM - 1:00 PM</span>
               </li>
             </ul>
+          </div>
+
+          <div>
+            <h2 className="text-sm font-bold text-white">Find Us</h2>
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Scan or open Google Maps directions to DHIVA E-SEVAI MAIYAM"
+              className="mt-4 inline-flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-center transition hover:border-primary/50 hover:bg-white/10"
+            >
+              <span className="rounded-lg bg-white p-1.5">
+                <QRCodeSVG
+                  value={mapUrl}
+                  size={112}
+                  level="M"
+                  title="QR code for Google Maps directions to DHIVA E-SEVAI MAIYAM"
+                />
+              </span>
+              <span>
+                <span className="block text-xs font-bold text-white">Scan for directions</span>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-400">
+                  Open Google Maps directions to our centre.
+                </span>
+              </span>
+            </a>
+            <form onSubmit={handleSubscribe} className="mt-5">
+              <label
+                htmlFor="footer-subscription-email"
+                className="text-xs font-bold text-white"
+              >
+                Email updates
+              </label>
+              <p className="mt-1 text-[11px] leading-4 text-slate-400">
+                Send us your email to request updates.
+              </p>
+              <div className="mt-2 flex min-w-0 overflow-hidden rounded-lg border border-white/15 bg-white/5 focus-within:border-primary">
+                <input
+                  id="footer-subscription-email"
+                  name="subscription-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="Your email address"
+                  className="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 bg-primary px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-500"
+                >
+                  Subscribe
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </PageContainer>
